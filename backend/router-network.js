@@ -463,8 +463,44 @@ router.get("/", async (req, res) => {
         chainid: genesis.config.chainId,
         cuentas: cuentas,
         nodes: nodes,
+        
       };
     })
     .filter((i) => i != null);
   res.send(output);
+});
+
+router.post("/status/:network/:node", (req, res) => {
+  
+  const NUMERO_NETWORK=parseInt(req.params.network)
+  const NUMERO_NODO = parseInt(req.params.network);
+  const parametros = generateParameter(NUMERO_NETWORK, NUMERO_NODO);
+  
+  const {
+    NETWORK_DIR,
+    DIR_NODE,
+    NETWORK_CHAINID,
+    AUTHRPC_PORT,
+    HTTP_PORT,
+    PORT,
+    IPCPATH,
+  } = parametros;
+
+
+  //const comando = `curl --data '{"jsonrpc":"2.0","method":"net_listening", "params": [], "id":2}' -H "Content-Type: application/json" localhost:8545`;
+  const comando = 'geth attach --exec "net.listening" http://localhost:8545'//+AUTHRPC_PORT
+  console.log(AUTHRPC_PORT);
+  const resultado = exec(comando, (error, stdout, stderr) => {
+    console.log("ejecutado");
+    if (error) {
+      
+      res.send({ error });
+      return;
+    }
+    console.log("RESULTADO");
+    
+    console.log({"Salida":stdout});
+    res.send({"Salida":stdout});
+    
+  });
 });
