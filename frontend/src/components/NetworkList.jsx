@@ -60,7 +60,7 @@ export const NetworkList = () => {
       console.log(error);
     }
   }
-
+  
 
   async function checkNodeStatus(networkdata) {
     //sacar numeros de cadena 
@@ -131,6 +131,30 @@ export const NetworkList = () => {
     //metemos los datos al useState.
     setNodeStatus(valores)
   }
+  async function deleteNetwork(network) {
+   
+   
+    console.log("delete network ... ");
+    const requestOptions = {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        
+      }),
+    };
+
+    try {
+      const response = await fetch(url + "/network/"+network, requestOptions);
+      const data = await response.json();
+      console.log("data");
+      console.log(data);
+      // reload the page
+      window.location.reload();
+    } catch (error) {
+      console.log("error");
+      console.log(error);
+    }
+  }
 
   return (
     <div>
@@ -145,7 +169,7 @@ export const NetworkList = () => {
         {network &&
           network.map((network) => (
             <div className="card card-custom" key={network.chainid}>
-              <h5 className="card-header">{network.numero}<button onClick={() => console.log("DELETE")} className="btn btn-primary mb-3">DELETE</button></h5>
+              <h5 className="card-header">{network.numero}<button onClick={() =>deleteNetwork(network.numero) } className="btn btn-primary mb-3">DELETE</button></h5>
               <div className="card-body">
                 <p className="card-text">Chain id: {network.chainid}</p>
 

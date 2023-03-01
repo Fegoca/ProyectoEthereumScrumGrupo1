@@ -299,7 +299,7 @@ router.post("/add/:network/:node", (req, res) => {
 
   const CUENTA = createAccount(DIR_NODE);
   const CUENTAS_ALLOC = [CUENTA];
-
+/*geth --authrpc.port 8551 --ipcpath "\\. \pipe\geth1.ipc"--datadir nodo1 --syncmode full --http --http.api admin,eth,miner,net,txpool,personal --http.port 8545 --allow-insecure-unlock --unlock "0xf7b6a1af7743b5ece588206fd473a7223f158cd4" --password pswd.txt --port 30034 --bootnodes "enode://0b6c00d5ff74908252a0d57f86c9dac1d30eb16b1cb8396d030702ec8a9dcb45c27ec339f11918f9f71b638ed89bd91f5dfe64764354dcdc1904e9f8d744d6fd@127.0.0.1:0?discport=30310"*/ 
   const comando = `geth --datadir ${DIR_NODE} init ${NETWORK_DIR}/genesis.json`;
 
   const result = exec(comando, (error, stdout, stderr) => {
@@ -487,14 +487,15 @@ router.post("/status/:network/:node", (req, res) => {
   } = parametros;
 
 
+
   //const comando = `curl --data '{"jsonrpc":"2.0","method":"net_listening", "params": [], "id":2}' -H "Content-Type: application/json" localhost:8545`;
-  const comando = 'geth attach --exec "net.listening" http://localhost:8545'//+AUTHRPC_PORT
+  const comando = 'geth attach --exec "net.listening" http://localhost:'+HTTP_PORT
   console.log(AUTHRPC_PORT);
   const resultado = exec(comando, (error, stdout, stderr) => {
     console.log("ejecutado");
     if (error) {
       
-      res.send({ error });
+      res.send({ error });  
       return;
     }
     console.log("RESULTADO");
