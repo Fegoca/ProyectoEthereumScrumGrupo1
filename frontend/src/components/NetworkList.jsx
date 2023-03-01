@@ -60,6 +60,35 @@ export const NetworkList = () => {
       console.log(error);
     }
   }
+  async function addNetwork2(network) {
+    /* const data = {
+      network: network.length + 1,
+      node: 1,
+    };
+    console.log("data");
+    console.log(data); */
+    console.log("Adding network ... ");
+    const requestOptions = {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        network: network,
+        cuenta: "0x29f9e221f303059ba9f7aFBbDaB25ede852A6585",
+      }),
+    };
+
+    try {
+      const response = await fetch(url + "/network/create/", requestOptions);
+      const data = await response.json();
+      console.log("data");
+      console.log(data);
+      // reload the page
+      window.location.reload();
+    } catch (error) {
+      console.log("error");
+      console.log(error);
+    }
+  }
   
 
   async function checkNodeStatus(networkdata) {
@@ -155,6 +184,14 @@ export const NetworkList = () => {
       console.log(error);
     }
   }
+  
+// Promt Function to get the net number desired by the user
+
+  function hacerPregunta() {
+    const netNumber = prompt('Escribe tu respuesta');
+    addNetwork2(netNumber);
+    
+  }
 
   return (
     <div>
@@ -187,6 +224,11 @@ export const NetworkList = () => {
         <button onClick={() => addNetwork()} className="btn btn-primary mb-3">
           Add Network {network.length + 1}
         </button>
+        <p>
+          <button onClick={() => hacerPregunta()} className="btn btn-primary mb-3">
+          Add Network 
+        </button>
+        </p>
       </div>
     </div>
   );
