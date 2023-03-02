@@ -253,7 +253,35 @@ export const NetworkList = () => {
       console.log(error);
     }
   }
+  async function reloadNetwork(netWorkReload) {
+    //"/add/:network/:node"
+    
+    var nextNet=getNumbersInString(netWorkReload)
+    
+    console.log("Red a levantar: "+netWorkReload);
+    
+    
+    const requestOptions = {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
 
+      }),
+    };
+
+    try {
+      const response = await fetch(url + "/network/"+"reload/"+netWorkReload, requestOptions);
+      const data = await response.json();
+      console.log("data");
+      console.log(data);
+      // reload the page
+      window.location.reload();
+    } catch (error) {
+      console.log("error");
+      console.log(error);
+    }
+  }
+  //reload/:network
   return (
     <div>
       <div className="card card-custom">
@@ -264,7 +292,7 @@ export const NetworkList = () => {
             {network &&
               network.map((network) => (
                 <div className="card card-custom" key={network.chainid}>
-                  <h5 className="card-header">{network.numero}<button onClick={() => deleteNetwork(network.numero)} className="btn btn-danger btn-sm">DELETE</button></h5>
+                  <h5 className="card-header">{network.numero} ............. <button onClick={() => deleteNetwork(network.numero)} className="btn btn-danger btn-sm">DELETE</button></h5>
                   <div className="card-body">
                     <p className="card-text">Chain id: {network.chainid}</p>
 
@@ -272,7 +300,7 @@ export const NetworkList = () => {
 
                     {network.nodes.map((node) => (
                       <div id="nodo" className="card-text" key={node.name}>
-                        {node.name}  <button onClick={() => console.log("LEVANTAR NODO")} className="btn btn-info btn-sm">RELOAD</button>
+                        {node.name}  <button onClick={() => reloadNetwork(network.numero)} className="btn btn-info btn-sm">RELOAD</button>
 
                         <button onClick={() => addNode(network.numero, node.name)} className="btn btn-success btn-sm">ADD</button>
                       </div>

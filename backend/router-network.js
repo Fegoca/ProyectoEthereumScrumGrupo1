@@ -371,9 +371,10 @@ router.delete("/:network", (req, res) => {
   res.send({ network: req.params.network });
 });
 
-router.get("/reload/:network", (req, res) => {
+router.post("/reload/:network", (req, res) => {
   const NUMERO_NETWORK = parseInt(req.params.network);
   const NETWORK_DIR = `ETH/eth${NUMERO_NETWORK}`;
+  console.log("intenta reload")
   // los directorios
   const nodos = fs
     .readdirSync(NETWORK_DIR, { withFileTypes: true })
@@ -402,7 +403,7 @@ router.get("/reload/:network", (req, res) => {
   }));
   const enodes = keynode.map(
     (i) =>
-      `enode://${spawnSync("bootnode", [
+      `enode://${spawnSync}("bootnode", [
         "-nodekeyhex",
         i.nodekey,
         "-writeaddress",
