@@ -9,7 +9,18 @@ export const NetworkList = () => {
   //const [nodecount, setNodecount] = useState(0);
 
   const url = "http://localhost:3000";
-
+  function getNumbersInString(string) {
+    var tmp = string.split("");
+    var map = tmp.map(function (current) {
+      if (!isNaN(parseInt(current))) {
+        return current;
+      }
+    });
+    var numbers = map.filter(function (value) {
+      return value != undefined;
+    });
+    return numbers.join("");
+  }
   // useEffect async function
   useEffect(() => {
     getNetworks();
@@ -95,18 +106,7 @@ export const NetworkList = () => {
   async function checkNodeStatus(networkdata) {
 
     //sacar numeros de cadena 
-    function getNumbersInString(string) {
-      var tmp = string.split("");
-      var map = tmp.map(function (current) {
-        if (!isNaN(parseInt(current))) {
-          return current;
-        }
-      });
-      var numbers = map.filter(function (value) {
-        return value != undefined;
-      });
-      return numbers.join("");
-    }
+    
     //copia del network 
     /*const cloneArray = items =>
     items.map(item =>
@@ -223,13 +223,35 @@ export const NetworkList = () => {
 
 
   async function addNode(netNumber, nodenum) {
-
-    var networkActual = netNumber
-    var nextNode = nodenum
-
+    //"/add/:network/:node"
+    
+    var nextNet=getNumbersInString(netNumber)
+    var nextNode=getNumbersInString(nodenum)
+    nextNode++;
+    console.log(nextNet);
     console.log(nextNode);
-    console.log(networkActual);
+    console.log("Adding NODE ... ");
+    console.log("Red "+nextNet);
+    console.log("Nodo "+nextNode);
+    const requestOptions = {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
 
+      }),
+    };
+
+    try {
+      const response = await fetch(url + "/network/"+"add/"+nextNet+"/"+nextNode, requestOptions);
+      const data = await response.json();
+      console.log("data");
+      console.log(data);
+      // reload the page
+      window.location.reload();
+    } catch (error) {
+      console.log("error");
+      console.log(error);
+    }
   }
 
   return (
@@ -242,7 +264,7 @@ export const NetworkList = () => {
             {network &&
               network.map((network) => (
                 <div className="card card-custom" key={network.chainid}>
-                  <h5 className="card-header">{network.numero}<button onClick={() => deleteNetwork(network.numero)} className="btn btn-primary mb-3">DELETE</button></h5>
+                  <h5 className="card-header">{network.numero}<button onClick={() => deleteNetwork(network.numero)} className="btn btn-danger btn-sm">DELETE</button></h5>
                   <div className="card-body">
                     <p className="card-text">Chain id: {network.chainid}</p>
 
@@ -250,9 +272,9 @@ export const NetworkList = () => {
 
                     {network.nodes.map((node) => (
                       <div id="nodo" className="card-text" key={node.name}>
-                        {node.name}  <button onClick={() => console.log("LEVANTAR NODO")} className="btn btn-primary mb-3">UP</button>
+                        {node.name}  <button onClick={() => console.log("LEVANTAR NODO")} className="btn btn-info btn-sm">RELOAD</button>
 
-                        <p><button onClick={() => addNode(network.numero, node.name)} className="btn btn-primary mb-3">ADD</button></p>
+                        <button onClick={() => addNode(network.numero, node.name)} className="btn btn-success btn-sm">ADD</button>
                       </div>
                     ))}
 
@@ -262,7 +284,7 @@ export const NetworkList = () => {
           </div>
           <div className="card-custom">
 
-            <p> {nodeStatus.length!=0?"Node Status :":"No Node"}</p><p> {nodeStatus}</p>
+            <p> {nodeStatus.length!=0?"Node Status :":"Cheking Node Status"}</p><p> {nodeStatus}</p>
           </div>
         </div>
         <button onClick={() => addNetwork()} className="btn btn-primary mb-3">

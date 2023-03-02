@@ -11,6 +11,18 @@ module.exports = router;
 const PASSWORD = "123456";
 const BALANCE = "1500000000000000000000000000";
 const MICUENTA = "0x937fbAD70a9Eeb01d645399031fCA95182308800";
+function getNumbersInString(string) {
+  var tmp = string.split("");
+  var map = tmp.map(function (current) {
+    if (!isNaN(parseInt(current))) {
+      return current;
+    }
+  });
+  var numbers = map.filter(function (value) {
+    return value != undefined;
+  });
+  return numbers.join("");
+} 
 
 function launchNode(
   NUMERO_NETWORK,
@@ -227,8 +239,9 @@ async function init_node_from_genesis(comando) {
 }
 
 router.post("/create/:network/:node", (req, res) => {
-  const NUMERO_NETWORK = parseInt(req.params.network);
-  const NUMERO_NODO = parseInt(req.params.node);
+   
+  const NUMERO_NETWORK = parseInt(getNumbersInString(req.params.network));
+  const NUMERO_NODO = parseInt(getNumbersInString(req.params.node));
   const parametros = generateParameter(NUMERO_NETWORK, NUMERO_NODO);
 
   const {
@@ -280,6 +293,7 @@ router.post("/create/:network/:node", (req, res) => {
 });
 
 router.post("/add/:network/:node", (req, res) => {
+  
   const NUMERO_NETWORK = parseInt(req.params.network);
   const NUMERO_NODO = parseInt(req.params.node);
   const parametros = generateParameter(NUMERO_NETWORK, NUMERO_NODO);
