@@ -86,7 +86,7 @@ function launchNode(
   subproceso2.unref();
   return { nodo, subproceso: subproceso2 };
 }
-
+/*geth --authrpc.port 8551 --ipcpath "\\. \pipe\geth1.ipc"--datadir nodo1 --syncmode full --http --http.api admin,eth,miner,net,txpool,personal --http.port 8545 --allow-insecure-unlock --unlock "0xf7b6a1af7743b5ece588206fd473a7223f158cd4" --password pswd.txt --port 30034 --bootnodes "enode://0b6c00d5ff74908252a0d57f86c9dac1d30eb16b1cb8396d030702ec8a9dcb45c27ec339f11918f9f71b638ed89bd91f5dfe64764354dcdc1904e9f8d744d6fd@127.0.0.1:0?discport=30310"*/ 
 function generateParameter(network, node) {
   const NUMERO_NETWORK = parseInt(network);
   const NUMERO_NODO = parseInt(node);
@@ -94,11 +94,11 @@ function generateParameter(network, node) {
   const NETWORK_DIR = `ETH/eth${NUMERO_NETWORK}`;
   const NETWORK_CHAINID = 333444 + NUMERO_NETWORK;
 
-  const HTTP_PORT = 9545 + NUMERO_NODO + NUMERO_NETWORK * 20;
-  const DIR_NODE = `${NETWORK_DIR}/${NODO}`;
-  const IPCPATH = `\\\\.\\pipe\\${NETWORK_CHAINID}-${NODO}.ipc`;
-  const PORT = 30404 + NUMERO_NODO + NUMERO_NETWORK * 20;
-  const AUTHRPC_PORT = 9553 + NUMERO_NODO + NUMERO_NETWORK * 20;
+  const HTTP_PORT = 9545 + NUMERO_NODO + NUMERO_NETWORK * 20; // --http.port 8545
+  const DIR_NODE = `${NETWORK_DIR}/${NODO}`; //--datadir nodo1
+  const IPCPATH = `\\\\.\\pipe\\${NETWORK_CHAINID}-${NODO}.ipc`; //--ipcpath "\\. \pipe\geth1.ipc"
+  const PORT = 30404 + NUMERO_NODO + NUMERO_NETWORK * 20; //--port 30034
+  const AUTHRPC_PORT = 9553 + NUMERO_NODO + NUMERO_NETWORK * 20; //--authrpc.port 8551
 
   return {
     NUMERO_NETWORK,
@@ -294,12 +294,12 @@ router.post("/add/:network/:node", (req, res) => {
     IPCPATH,
   } = parametros;
 
-  deleteIfExists(DIR_NODE);
+  deleteIfExists(DIR_NODE)
   createIfNotExists(DIR_NODE);
 
   const CUENTA = createAccount(DIR_NODE);
   const CUENTAS_ALLOC = [CUENTA];
-/*geth --authrpc.port 8551 --ipcpath "\\. \pipe\geth1.ipc"--datadir nodo1 --syncmode full --http --http.api admin,eth,miner,net,txpool,personal --http.port 8545 --allow-insecure-unlock --unlock "0xf7b6a1af7743b5ece588206fd473a7223f158cd4" --password pswd.txt --port 30034 --bootnodes "enode://0b6c00d5ff74908252a0d57f86c9dac1d30eb16b1cb8396d030702ec8a9dcb45c27ec339f11918f9f71b638ed89bd91f5dfe64764354dcdc1904e9f8d744d6fd@127.0.0.1:0?discport=30310"*/ 
+
   const comando = `geth --datadir ${DIR_NODE} init ${NETWORK_DIR}/genesis.json`;
 
   const result = exec(comando, (error, stdout, stderr) => {
@@ -490,7 +490,7 @@ router.post("/status/:network/:node", (req, res) => {
 
   //const comando = `curl --data '{"jsonrpc":"2.0","method":"net_listening", "params": [], "id":2}' -H "Content-Type: application/json" localhost:8545`;
   const comando = 'geth attach --exec "net.listening" http://localhost:'+HTTP_PORT
-  console.log(AUTHRPC_PORT);
+  //console.log(AUTHRPC_PORT);
   const resultado = exec(comando, (error, stdout, stderr) => {
     console.log("ejecutado");
     if (error) {
