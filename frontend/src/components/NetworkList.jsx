@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
-
 export const NetworkList = () => {
   // useState to store the network list
   const [network, setNetwork] = useState([]);
   const [nodeStatus, setNodeStatus] = useState([]);
-  
+
   const url = "http://localhost:3000";
   //sacar numeros de cadena
   function getNumbersInString(string) {
@@ -71,6 +70,59 @@ export const NetworkList = () => {
       console.log(error);
     }
   }
+
+  async function startNode(network, node) {
+    var networkNum = getNumbersInString(network);
+    var nodeNum = getNumbersInString(node);
+    console.log("Starting node ... ");
+    const requestOptions = {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    };
+
+    try {
+      const response = await fetch(
+        url + "/network/start/" + networkNum + "/" + nodeNum,
+        requestOptions
+      );
+      const data = await response.json();
+      console.log("data");
+      console.log(data);
+      // reload the page
+      window.location.reload();
+    } catch (error) {
+      console.log("error");
+      console.log(error);
+    }
+  }
+
+  async function stopNode(network, node) {
+    var networkNum = getNumbersInString(network);
+    var nodeNum = getNumbersInString(node);
+    console.log("Starting node ... ");
+    const requestOptions = {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    };
+
+    try {
+      const response = await fetch(
+        url + "/network/stop/" + networkNum + "/" + nodeNum,
+        requestOptions
+      );
+      const data = await response.json();
+      console.log("data");
+      console.log(data);
+      // reload the page
+      window.location.reload();
+    } catch (error) {
+      console.log("error");
+      console.log(error);
+    }
+  }
+
   async function addNetwork2(network) {
     /* const data = {
       network: network.length + 1,
@@ -104,32 +156,42 @@ export const NetworkList = () => {
   // Preguntar a chat
 
   async function checkNodeStatus(networkdata) {
-
     console.log("check status ");
 
     //constante requestOptions
     const requestOptions = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-
-      }),
+      body: JSON.stringify({}),
     };
-    
-   //copia del network 
+
+    //copia del network
     //var networkOut = JSON.parse(JSON.stringify(networkdata));
     var valores = [];
     var status = "";
     for (let i = 0; i < networkdata.length; i++) {
       for (let j = 0; j < networkdata[i].nodes.length; j++) {
-
         try {
           /* setTimeout(()=> {
              console.log("Esperando Status:"+networkdata[i].numero+networkdata[i].nodes[j].name)
           }
           ,200);*/
-          const response = await fetch(url + "/network/status/" + getNumbersInString(networkdata[i].numero) + "/" + getNumbersInString(networkdata[i].nodes[j].name), requestOptions); console.log("FETCH:" + url + "/network/status/" + getNumbersInString(networkdata[i].numero) + "/" + getNumbersInString(networkdata[i].nodes[j].name))
-
+          const response = await fetch(
+            url +
+              "/network/status/" +
+              getNumbersInString(networkdata[i].numero) +
+              "/" +
+              getNumbersInString(networkdata[i].nodes[j].name),
+            requestOptions
+          );
+          console.log(
+            "FETCH:" +
+              url +
+              "/network/status/" +
+              getNumbersInString(networkdata[i].numero) +
+              "/" +
+              getNumbersInString(networkdata[i].nodes[j].name)
+          );
 
           var data = await response.json();
           //console.log("DATA RAW");
@@ -139,16 +201,25 @@ export const NetworkList = () => {
           if (data.Salida != "true\n") {
             data = "NOT OK";
             networkdata[i].nodes[j].status = data;
-            status = networkdata[i].numero + " " + networkdata[i].nodes[j].name + " " + data + " / ";
+            status =
+              networkdata[i].numero +
+              " " +
+              networkdata[i].nodes[j].name +
+              " " +
+              data +
+              " / ";
             valores.push(status);
-            
-            
           } else {
-            data = "OK"
+            data = "OK";
             networkdata[i].nodes[j].status = data;
-            status = networkdata[i].numero + " " + networkdata[i].nodes[j].name + " " + data + " / ";
+            status =
+              networkdata[i].numero +
+              " " +
+              networkdata[i].nodes[j].name +
+              " " +
+              data +
+              " / ";
             valores.push(status);
-            
           }
           //console.log("DATA despues de filtrar error");
           console.log(data);
@@ -164,19 +235,14 @@ export const NetworkList = () => {
     }
     //console.log(JSON.stringify(networkdata))
     //setcopianetwork(networkdata)
-    setNodeStatus(valores)
-
+    setNodeStatus(valores);
   }
   async function deleteNetwork(network) {
-
-
     console.log("delete network ... ");
     const requestOptions = {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-
-      }),
+      body: JSON.stringify({}),
     };
 
     try {
@@ -195,33 +261,35 @@ export const NetworkList = () => {
   // Promt Function to get the net number desired by the user
 
   function hacerPregunta() {
-    const netNumber = prompt('Escribe tu respuesta');
+    const netNumber = prompt("Escribe tu respuesta");
     addNetwork2(netNumber);
-
   }
-
 
   async function addNode(netNumber, nodenum) {
     //"/add/:network/:node"
-    
-    var nextNet=getNumbersInString(netNumber)
-    var nextNode=getNumbersInString(nodenum)
+    var nextNet = getNumbersInString(netNumber);
+    console.log(nextNet);
+    console.log(nodenum);
+
+    /* var nextNet = getNumbersInString(netNumber);
+    var nextNode = getNumbersInString(nodenum);
     nextNode++;
     console.log(nextNet);
     console.log(nextNode);
     console.log("Adding NODE ... ");
-    console.log("Red "+nextNet);
-    console.log("Nodo "+nextNode);
+    console.log("Red " + nextNet);
+    console.log("Nodo " + nextNode); */
     const requestOptions = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-
-      }),
+      body: JSON.stringify({}),
     };
 
     try {
-      const response = await fetch(url + "/network/"+"add/"+nextNet+"/"+nextNode, requestOptions);
+      const response = await fetch(
+        url + "/network/" + "add/" + nextNet + "/" + nodenum,
+        requestOptions
+      );
       const data = await response.json();
       console.log("data");
       console.log(data);
@@ -234,22 +302,22 @@ export const NetworkList = () => {
   }
   async function reloadNetwork(netWorkReload) {
     //"/add/:network/:node"
-    
-    var nextNet=getNumbersInString(netWorkReload)
-    
-    console.log("Red a levantar: "+netWorkReload);
-    
-    
+
+    var nextNet = getNumbersInString(netWorkReload);
+
+    console.log("Red a levantar: " + netWorkReload);
+
     const requestOptions = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-
-      }),
+      body: JSON.stringify({}),
     };
 
     try {
-      const response = await fetch(url + "/network/"+"reload/"+netWorkReload, requestOptions);
+      const response = await fetch(
+        url + "/network/" + "reload/" + netWorkReload,
+        requestOptions
+      );
       const data = await response.json();
       console.log("data");
       console.log(data);
@@ -270,35 +338,89 @@ export const NetworkList = () => {
           <div className="d-flex flex-wrap justify-content-center">
             {network &&
               network.map((network) => (
-                
                 <div className="card card-custom" key={network.chainid}>
-                  <h5 className="card-header">{network.numero} ............. <button onClick={() => deleteNetwork(network.numero)} className="btn btn-danger btn-sm">DELETE</button></h5>
+                  <h5 className="card-header">
+                    {network.numero} .............{" "}
+                    <button
+                      onClick={() => deleteNetwork(network.numero)}
+                      className="btn btn-danger btn-sm"
+                    >
+                      DELETE
+                    </button>
+                  </h5>
                   <div className="card-body">
                     <p className="card-text">Chain id: {network.chainid}</p>
 
                     <h5 className="card-title">Nodes :</h5>
-                    
+
                     {network.nodes.map((node) => (
-                      <div id="nodo" className="card-text" key={node.name}>
-                        {node.name} {node.status!="OK"?<button onClick={() => alert(node.name+" "+node.status)} className="btn btn-danger btn-sm">UP</button>:<button onClick={() => alert(node.name+" "+node.status)} className="btn btn-info btn-sm">OK</button>}
-                        <button onClick={() => addNode(network.numero, node.name)} className="btn btn-success btn-sm">ADD</button>
+                      <div
+                        id="nodo"
+                        className="mb-4 border card-text"
+                        key={node.name}
+                      >
+                        <div className="bg-info">{node.name} </div>
+                        {node.status != "OK" ? (
+                          <div>
+                            <div className="mb-2 bg-warning text-dark">
+                              Status: <span>Down</span>
+                            </div>
+                            <div>
+                              <button
+                                onClick={() =>
+                                  startNode(network.numero, node.name)
+                                }
+                                className="mb-2 btn btn-primary"
+                              >
+                                Start it
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <div className="mb-2 bg-success text-dark">
+                              Status: <span>UP</span>
+                            </div>
+                            <div>
+                              <button
+                                onClick={() =>
+                                  stopNode(network.numero, node.name)
+                                }
+                                className="mb-2 btn btn-danger"
+                              >
+                                Stop it
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
-
+                    <div className="mb-4">
+                      <button
+                        onClick={() =>
+                          addNode(network.numero, network.nodes.length + 1)
+                        }
+                        className="mb-2 btn btn-success btn-sm"
+                      >
+                        Add Node {network.nodes.length + 1}
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
           </div>
-          <div className="card-custom">
-
-            <p> {nodeStatus.length!=0?"Node Status :":"Cheking Node Status"}</p><p> {nodeStatus}</p>
-          </div>
         </div>
-        <button onClick={() => addNetwork()} className="btn btn-primary mb-3">
-          Add Network {network.length + 1}
-        </button>
+        <div>
+          <button onClick={() => addNetwork()} className="btn btn-primary mb-3">
+            Add Network {network.length + 1}
+          </button>
+        </div>
+
         <p>
-          <button onClick={() => hacerPregunta()} className="btn btn-primary mb-3">
+          <button
+            onClick={() => hacerPregunta()}
+            className="btn btn-primary mb-3"
+          >
             Add Network ID
           </button>
         </p>

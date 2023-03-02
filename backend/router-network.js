@@ -11,6 +11,8 @@ module.exports = router;
 const PASSWORD = "123456";
 const BALANCE = "1500000000000000000000000000";
 const MICUENTA = "0x937fbAD70a9Eeb01d645399031fCA95182308800";
+const IP = "127.0.0.1";
+
 function getNumbersInString(string) {
   var tmp = string.split("");
   var map = tmp.map(function (current) {
@@ -22,7 +24,7 @@ function getNumbersInString(string) {
     return value != undefined;
   });
   return numbers.join("");
-} 
+}
 
 function launchNode(
   NUMERO_NETWORK,
@@ -98,7 +100,7 @@ function launchNode(
   subproceso2.unref();
   return { nodo, subproceso: subproceso2 };
 }
-/*geth --authrpc.port 8551 --ipcpath "\\. \pipe\geth1.ipc"--datadir nodo1 --syncmode full --http --http.api admin,eth,miner,net,txpool,personal --http.port 8545 --allow-insecure-unlock --unlock "0xf7b6a1af7743b5ece588206fd473a7223f158cd4" --password pswd.txt --port 30034 --bootnodes "enode://0b6c00d5ff74908252a0d57f86c9dac1d30eb16b1cb8396d030702ec8a9dcb45c27ec339f11918f9f71b638ed89bd91f5dfe64764354dcdc1904e9f8d744d6fd@127.0.0.1:0?discport=30310"*/ 
+/*geth --authrpc.port 8551 --ipcpath "\\. \pipe\geth1.ipc"--datadir nodo1 --syncmode full --http --http.api admin,eth,miner,net,txpool,personal --http.port 8545 --allow-insecure-unlock --unlock "0xf7b6a1af7743b5ece588206fd473a7223f158cd4" --password pswd.txt --port 30034 --bootnodes "enode://0b6c00d5ff74908252a0d57f86c9dac1d30eb16b1cb8396d030702ec8a9dcb45c27ec339f11918f9f71b638ed89bd91f5dfe64764354dcdc1904e9f8d744d6fd@127.0.0.1:0?discport=30310"*/
 function generateParameter(network, node) {
   const NUMERO_NETWORK = parseInt(network);
   const NUMERO_NODO = parseInt(node);
@@ -137,13 +139,25 @@ function createAccount(DIR_NODE) {
   fs.writeFileSync(`${DIR_NODE}/pwd`, PASSWORD);
   execSync(`geth --datadir ${DIR_NODE} account new --password ${DIR_NODE}/pwd`);
 
+  return getAccount(DIR_NODE);
+}
+
+function getAccount(DIR_NODE) {
   // We get the address of the account we have just created
   const lista = fs.readdirSync(`${DIR_NODE}/keystore`);
-  const CUENTA = JSON.parse(
+  const address = JSON.parse(
     fs.readFileSync(`${DIR_NODE}/keystore/${lista[0]}`).toString()
   ).address;
-  return CUENTA;
+  return address;
 }
+
+function getNodeData(DIR_NODE) {
+  const data = JSON.parse(
+    fs.readFileSync(`${DIR_NODE}/paramsNodo.json`).toString()
+  ).nodo;
+  return data;
+}
+
 function generateGenesis(
   NETWORK_CHAINID,
   CUENTA,
@@ -239,7 +253,6 @@ async function init_node_from_genesis(comando) {
 }
 
 router.post("/create/:network/:node", (req, res) => {
-   
   const NUMERO_NETWORK = parseInt(getNumbersInString(req.params.network));
   const NUMERO_NODO = parseInt(getNumbersInString(req.params.node));
   const parametros = generateParameter(NUMERO_NETWORK, NUMERO_NODO);
@@ -293,7 +306,6 @@ router.post("/create/:network/:node", (req, res) => {
 });
 
 router.post("/add/:network/:node", (req, res) => {
-  
   const NUMERO_NETWORK = parseInt(req.params.network);
   const NUMERO_NODO = parseInt(req.params.node);
   const parametros = generateParameter(NUMERO_NETWORK, NUMERO_NODO);
@@ -308,7 +320,7 @@ router.post("/add/:network/:node", (req, res) => {
     IPCPATH,
   } = parametros;
 
-  deleteIfExists(DIR_NODE)
+  deleteIfExists(DIR_NODE);
   createIfNotExists(DIR_NODE);
 
   const CUENTA = createAccount(DIR_NODE);
@@ -374,7 +386,7 @@ router.delete("/:network", (req, res) => {
 router.post("/reload/:network", (req, res) => {
   const NUMERO_NETWORK = parseInt(req.params.network);
   const NETWORK_DIR = `ETH/eth${NUMERO_NETWORK}`;
-  console.log("intenta reload")
+  console.log("intenta reload");
   // los directorios
   const nodos = fs
     .readdirSync(NETWORK_DIR, { withFileTypes: true })
@@ -478,18 +490,17 @@ router.get("/", async (req, res) => {
         chainid: genesis.config.chainId,
         cuentas: cuentas,
         nodes: nodes,
-        };
+      };
     })
     .filter((i) => i != null);
   res.send(output);
 });
 
 router.post("/status/:network/:node", (req, res) => {
-  
-  const NUMERO_NETWORK=parseInt(req.params.network)
-  const NUMERO_NODO = parseInt(req.params.network);
+  const NUMERO_NETWORK = parseInt(req.params.network);
+  const NUMERO_NODO = parseInt(req.params.node);
   const parametros = generateParameter(NUMERO_NETWORK, NUMERO_NODO);
-  
+
   const {
     NETWORK_DIR,
     DIR_NODE,
@@ -500,22 +511,104 @@ router.post("/status/:network/:node", (req, res) => {
     IPCPATH,
   } = parametros;
 
-
-
   //const comando = `curl --data '{"jsonrpc":"2.0","method":"net_listening", "params": [], "id":2}' -H "Content-Type: application/json" localhost:8545`;
-  const comando = 'geth attach --exec "net.listening" http://localhost:'+HTTP_PORT
-  //console.log(AUTHRPC_PORT);
+  const comando =
+    'geth attach --exec "net.listening" http://localhost:' + HTTP_PORT;
   const resultado = exec(comando, (error, stdout, stderr) => {
     console.log("ejecutado");
     if (error) {
-      
-      res.send({ error });  
+      res.send({ error });
       return;
     }
     console.log("RESULTADO");
-    
-    console.log({"Salida":stdout});
-    res.send({"Salida":stdout});
-    
+
+    console.log({ Salida: stdout });
+    res.send({ Salida: stdout });
   });
+});
+
+router.post("/start/:network/:node", async (req, res) => {
+  const NUMERO_NETWORK = parseInt(req.params.network);
+  const NUMERO_NODO = parseInt(req.params.node);
+
+  const NETWORK_DIR = `ETH/eth${NUMERO_NETWORK}`;
+  const DIR_NODE = `${NETWORK_DIR}/nodo${NUMERO_NODO}`;
+  const address = getAccount(DIR_NODE);
+  const nodeData = getNodeData(DIR_NODE);
+
+  console.log(nodeData.chainId);
+
+  // Fiile the params array with the command line arguments
+  const params = [
+    "--networkid",
+    nodeData.chainId,
+    "--syncmode",
+    "full",
+    "--nat",
+    `extip:${IP}`,
+    "--datadir",
+    DIR_NODE,
+    "--port",
+    nodeData.port,
+    "--unlock",
+    `0x${address}`,
+    "--password",
+    "pwd.txt",
+    "--authrpc.port",
+    nodeData.authRpcPort,
+    "--http.api",
+    "admin,eth,net,txpool,personal,web3,clique",
+    "--allow-insecure-unlock",
+    "--http",
+    "--graphql",
+    "--http.port",
+    nodeData.http_port,
+    "--mine",
+    "--miner.threads",
+    "2",
+    "--miner.etherbase",
+    address,
+  ];
+
+  // Exxecute the command as a subprocess
+  const out = fs.openSync(`./${DIR_NODE}/outNodo.log`, "w");
+  const err = fs.openSync(`./${DIR_NODE}/outNodo.log`, "a");
+  const subprocess = spawn("geth", params, {
+    detached: true,
+    stdio: ["ignore", out, err],
+  });
+
+  fs.writeFileSync(
+    `${DIR_NODE}/paramsNodoRunning.json`,
+    JSON.stringify({ subproceso: subprocess }, null, 4)
+  );
+
+  res.send(subprocess);
+});
+
+router.post("/stop/:network/:node", async (req, res) => {
+  const NUMERO_NETWORK = parseInt(req.params.network);
+  const NUMERO_NODO = parseInt(req.params.node);
+
+  const NETWORK_DIR = `ETH/eth${NUMERO_NETWORK}`;
+  const DIR_NODE = `${NETWORK_DIR}/nodo${NUMERO_NODO}`;
+
+  console.log("DIR_NODE");
+  console.log(DIR_NODE);
+
+  // const params = fs.readdirSync(`${DIR_NODE}/paramsNodoRunning.json`);
+  var params = fs.readFileSync(`${DIR_NODE}/paramsNodoRunning.json`).toString();
+
+  // Convert to JSON
+  params = JSON.parse(params);
+
+  const result_kill = await ps.kill(params.subproceso.pid, function (err) {
+    if (err) {
+      throw new Error(err);
+    } else {
+      console.log("Process %s has been killed!", params.subproceso.pid);
+    }
+  });
+
+  res.send({ result: result_kill });
 });
