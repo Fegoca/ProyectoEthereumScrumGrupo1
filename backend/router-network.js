@@ -478,8 +478,7 @@ router.get("/", async (req, res) => {
         chainid: genesis.config.chainId,
         cuentas: cuentas,
         nodes: nodes,
-        
-      };
+        };
     })
     .filter((i) => i != null);
   res.send(output);
