@@ -6,7 +6,7 @@ export const NetworkList = () => {
   // useState to store the network list
   const [network, setNetwork] = useState([]);
   const [nodeStatus, setNodeStatus] = useState([]);
-  const [nodecount, setNodecount] = useState(0);
+  //const [nodecount, setNodecount] = useState(0);
 
   const url = "http://localhost:3000";
 
@@ -175,7 +175,7 @@ export const NetworkList = () => {
           //console.log("DATA despues de filtrar error");
           console.log(data);
            //indice nodo
-          setNodecount(valores.length-1)
+          //setNodecount(valores.length-1)
           //metemos los datos al useState.
           //setNodeStatus(valores)
         } catch (error) {
