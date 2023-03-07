@@ -4,6 +4,7 @@ import axios from "axios";
 export const NetworkList = () => {
   // useState to store the network list
   const [network, setNetwork] = useState([]);
+  const [message, setMessage] = useState(null);
   const [nodeStatus, setNodeStatus] = useState([]);
 
   const url = "http://localhost:3000";
@@ -87,12 +88,22 @@ export const NetworkList = () => {
         requestOptions
       );
       const data = await response.json();
-      console.log("data");
+      console.log("start NODE ---- ");
       console.log(data);
-      // reload the page
-      window.location.reload();
+      console.log("data.result");
+      console.log(data.result);
+      if ("bootnode down" === data.result) {
+        setMessage(
+          "Bootnode of NetWork " +
+            networkNum +
+            " is down, please start it first"
+        );
+      } else {
+        // reload the page
+        window.location.reload();
+      }
     } catch (error) {
-      console.log("error");
+      console.log("start error");
       console.log(error);
     }
   }
@@ -110,6 +121,56 @@ export const NetworkList = () => {
     try {
       const response = await fetch(
         url + "/network/stop/" + networkNum + "/" + nodeNum,
+        requestOptions
+      );
+      const data = await response.json();
+      console.log("data");
+      console.log(data);
+      // reload the page
+      window.location.reload();
+    } catch (error) {
+      console.log("error");
+      console.log(error);
+    }
+  }
+
+  async function startBootnode(network) {
+    var networkNum = getNumbersInString(network);
+    console.log("stopBootnode ... ");
+    const requestOptions = {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    };
+
+    try {
+      const response = await fetch(
+        url + "/network/startbootnode/" + networkNum,
+        requestOptions
+      );
+      const data = await response.json();
+      console.log("data");
+      console.log(data);
+      // reload the page
+      window.location.reload();
+    } catch (error) {
+      console.log("error");
+      console.log(error);
+    }
+  }
+
+  async function stopBootnode(network) {
+    var networkNum = getNumbersInString(network);
+    console.log("stopBootnode ... ");
+    const requestOptions = {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    };
+
+    try {
+      const response = await fetch(
+        url + "/network/stopbootnode/" + networkNum,
         requestOptions
       );
       const data = await response.json();
@@ -293,6 +354,7 @@ export const NetworkList = () => {
       const data = await response.json();
       console.log("data");
       console.log(data);
+
       // reload the page
       window.location.reload();
     } catch (error) {
@@ -333,6 +395,11 @@ export const NetworkList = () => {
     <div>
       <div className="card card-custom">
         <h5 className="card-header">NETWORKS</h5>
+
+        <div id="warning_message" className="p-3 mb-2 bg-warning text-dark">
+          {message}
+        </div>
+
         <div className="card-body">
           <p></p>
           <div className="d-flex flex-wrap justify-content-center">
@@ -351,7 +418,42 @@ export const NetworkList = () => {
                   <div className="card-body">
                     <p className="card-text">Chain id: {network.chainid}</p>
 
-                    <h5 className="card-title">Nodes :</h5>
+                    <div className="bg-dark text-white">BOOTNODE </div>
+                    {network.enodekey === undefined ||
+                    network.enodekey === null ||
+                    network.enodekey === "" ? (
+                      <div>
+                        <div className="mb-2 bg-warning text-dark">
+                          Status: <span>Down</span>
+                        </div>
+                        <div>
+                          <button
+                            onClick={() => startBootnode(network.numero)}
+                            className="mb-2 btn btn-primary"
+                          >
+                            Start bootnode
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="mb-2 bg-success text-dark">
+                          Status: <span>UP</span>
+                        </div>
+                        <div>
+                          <button
+                            onClick={() => stopBootnode(network.numero)}
+                            className="mb-2 btn btn-danger"
+                          >
+                            Stop bootnode
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    <hr></hr>
+
+                    <h5 className="card-title">Nodes</h5>
 
                     {network.nodes.map((node) => (
                       <div
@@ -372,7 +474,7 @@ export const NetworkList = () => {
                                 }
                                 className="mb-2 btn btn-primary"
                               >
-                                Start it
+                                Start node
                               </button>
                             </div>
                           </div>
@@ -388,7 +490,7 @@ export const NetworkList = () => {
                                 }
                                 className="mb-2 btn btn-danger"
                               >
-                                Stop it
+                                Stop node
                               </button>
                             </div>
                           </div>

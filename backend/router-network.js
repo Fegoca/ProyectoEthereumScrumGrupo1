@@ -107,6 +107,7 @@ function generateParameter(network, node) {
   const NODO = `nodo${NUMERO_NODO}`;
   const NETWORK_DIR = `ETH/eth${NUMERO_NETWORK}`;
   const NETWORK_CHAINID = 333444 + NUMERO_NETWORK;
+  const BOOTNODE_PORT = 30305 + NUMERO_NETWORK;
 
   const HTTP_PORT = 9545 + NUMERO_NODO + NUMERO_NETWORK * 20; // --http.port 8545
   const DIR_NODE = `${NETWORK_DIR}/${NODO}`; //--datadir nodo1
@@ -125,6 +126,7 @@ function generateParameter(network, node) {
     IPCPATH,
     PORT,
     AUTHRPC_PORT,
+    BOOTNODE_PORT,
   };
 }
 
@@ -138,6 +140,9 @@ function deleteIfExists(path) {
 function createAccount(DIR_NODE) {
   fs.writeFileSync(`${DIR_NODE}/pwd`, PASSWORD);
   execSync(`geth --datadir ${DIR_NODE} account new --password ${DIR_NODE}/pwd`);
+  /* execSync(
+    `docker run --rm -it -v ${DIR_NODE}/keystore:/data -v ${DIR_NODE}:/tmp ethereum/client-go account new --keystore /data --password /tmp/pwd`
+  ); */
 
   return getAccount(DIR_NODE);
 }
@@ -181,7 +186,7 @@ function generateGenesis(
   fs.writeFileSync(`${NETWORK_DIR}/genesis.json`, JSON.stringify(genesis));
 }
 router.post("/create", async (req, res) => {
-  console.log("req.body -> " + req.body);
+  //console.log("req.body -> " + req.body);
   const NUMERO_NETWORK = parseInt(req.body.network);
   // if NUMERO_NETWORK is empty then return error with a json
   if (!NUMERO_NETWORK) {
@@ -206,12 +211,19 @@ router.post("/create", async (req, res) => {
     HTTP_PORT,
     PORT,
     IPCPATH,
+    BOOTNODE_PORT,
   } = parametros;
 
   createIfNotExists("ETH");
   deleteIfExists(NETWORK_DIR);
   createIfNotExists(NETWORK_DIR);
+
   createIfNotExists(DIR_NODE);
+  createIfNotExists(DIR_NODE + "/keystore");
+  createIfNotExists(DIR_NODE + "/geth");
+
+  // Create password file DIR_NODE the DIR_NODE
+  fs.writeFileSync(`${DIR_NODE}/pwd`, PASSWORD);
 
   const CUENTA = createAccount(DIR_NODE);
   console.log("CUENTA -> " + CUENTA);
@@ -222,6 +234,7 @@ router.post("/create", async (req, res) => {
 
   // INICIALIZAMOS EL NODO
   const comando = `geth --datadir ${DIR_NODE} init ${NETWORK_DIR}/genesis.json`;
+  // const comando = `docker run -d --rm -it -v ${DIR_NODE}/keystore:/data -v ${DIR_NODE}:/tmp -v ${NETWORK_DIR}:/genesis ethereum/client-go --datadir /tmp --keystore /data init /genesis/genesis.json`;
   console.log("comando -> " + comando);
   const result = init_node_from_genesis(comando);
   const resultado = launchNode(
@@ -239,16 +252,16 @@ router.post("/create", async (req, res) => {
     CUENTAS_ALLOC
   );
 
-  res.send(resultado);
+  res.send(result);
 });
 
 async function init_node_from_genesis(comando) {
   const result = exec(comando, (error, stdout, stderr) => {
     console.log("ejecutado");
     if (error) {
-      res.send({ error });
-      return;
+      return error;
     }
+    return;
   });
 }
 
@@ -484,12 +497,19 @@ router.get("/", async (req, res) => {
       const nodes = fs
         .readdirSync(`ETH/${i.name}`, { withFileTypes: true })
         .filter((j) => !j.isFile());
-
+      var enodekey = "";
+      if (fs.existsSync(`ETH/${i.name}/enodeKey.log`)) {
+        enodekey = fs
+          .readFileSync(`ETH/${i.name}/enodeKey.log`)
+          .toString()
+          .replace(/\r?\n|\r/g, "");
+      }
       return {
         numero: i.name,
         chainid: genesis.config.chainId,
         cuentas: cuentas,
         nodes: nodes,
+        enodekey: enodekey,
       };
     })
     .filter((i) => i != null);
@@ -531,59 +551,92 @@ router.post("/start/:network/:node", async (req, res) => {
   const NUMERO_NETWORK = parseInt(req.params.network);
   const NUMERO_NODO = parseInt(req.params.node);
 
-  const NETWORK_DIR = `ETH/eth${NUMERO_NETWORK}`;
-  const DIR_NODE = `${NETWORK_DIR}/nodo${NUMERO_NODO}`;
+  const parametros = generateParameter(NUMERO_NETWORK, NUMERO_NODO);
+  const {
+    NETWORK_DIR,
+    DIR_NODE,
+    NETWORK_CHAINID,
+    AUTHRPC_PORT,
+    HTTP_PORT,
+    PORT,
+    IPCPATH,
+    BOOTNODE_PORT,
+  } = parametros;
+
   const address = getAccount(DIR_NODE);
   const nodeData = getNodeData(DIR_NODE);
 
-  console.log(nodeData.chainId);
+  if (!fs.existsSync(`${NETWORK_DIR}/enodeKey.log`)) {
+    res.send({ result: "bootnode down" });
+  } else {
+    // Read the enodekey file, convert it to a string and remove the newline character
+    const enodekey = fs
+      .readFileSync(`${NETWORK_DIR}/enodeKey.log`)
+      .toString()
+      .replace(/\r?\n|\r/g, "");
 
-  // Fiile the params array with the command line arguments
-  const params = [
-    "--networkid",
-    nodeData.chainId,
-    "--syncmode",
-    "full",
-    "--nat",
-    `extip:${IP}`,
-    "--datadir",
-    DIR_NODE,
-    "--port",
-    nodeData.port,
-    "--unlock",
-    `0x${address}`,
-    "--password",
-    "pwd.txt",
-    "--authrpc.port",
-    nodeData.authRpcPort,
-    "--http.api",
-    "admin,eth,net,txpool,personal,web3,clique",
-    "--allow-insecure-unlock",
-    "--http",
-    "--graphql",
-    "--http.port",
-    nodeData.http_port,
-    "--mine",
-    "--miner.threads",
-    "2",
-    "--miner.etherbase",
-    address,
-  ];
+    //const enodekey = fs.readFileSync(`${NETWORK_DIR}/enodeKey.log`).toString();
 
-  // Exxecute the command as a subprocess
-  const out = fs.openSync(`./${DIR_NODE}/outNodo.log`, "w");
-  const err = fs.openSync(`./${DIR_NODE}/outNodo.log`, "a");
-  const subprocess = spawn("geth", params, {
-    detached: true,
-    stdio: ["ignore", out, err],
-  });
+    console.log("enodekey");
+    console.log(enodekey);
 
-  fs.writeFileSync(
-    `${DIR_NODE}/paramsNodoRunning.json`,
-    JSON.stringify({ subproceso: subprocess }, null, 4)
-  );
+    //res.send({ network: req.params.network, node: req.params.node });
 
-  res.send(subprocess);
+    console.log(`enode://${enodekey}@${IP}?discport=${BOOTNODE_PORT}`);
+
+    // Fiile the params array with the command line arguments
+    const params = [
+      "--networkid",
+      NETWORK_CHAINID,
+      "--bootnodes",
+      `enode://${enodekey}@${IP}:0?discport=${BOOTNODE_PORT}`,
+      "--syncmode",
+      "full",
+      "--datadir",
+      DIR_NODE,
+      "--port",
+      nodeData.port,
+      "--unlock",
+      `0x${address}`,
+      "--password",
+      `./${DIR_NODE}/pwd`,
+      "--authrpc.port",
+      nodeData.authRpcPort,
+      "--http.api",
+      "admin,eth,net,txpool,personal,web3,clique",
+      "--allow-insecure-unlock",
+      "--http",
+      "--graphql",
+      "--http.port",
+      nodeData.http_port,
+      "--mine",
+      "--miner.threads",
+      "2",
+      "--miner.etherbase",
+      address,
+    ];
+
+    try {
+      // Exxecute the command as a subprocess
+      const out = fs.openSync(`./${DIR_NODE}/outNodo.log`, "w");
+      const err = fs.openSync(`./${DIR_NODE}/outNodo.log`, "a");
+      const subprocess = spawn("geth", params, {
+        detached: true,
+        stdio: ["ignore", out, err],
+      });
+
+      fs.writeFileSync(
+        `${DIR_NODE}/paramsNodoRunning.json`,
+        JSON.stringify({ subproceso: subprocess }, null, 4)
+      );
+
+      res.send(subprocess);
+    } catch (error) {
+      console.log("START NODE error");
+      console.log(error);
+      res.send({ status: "error", data: error });
+    }
+  }
 });
 
 router.post("/stop/:network/:node", async (req, res) => {
@@ -610,5 +663,98 @@ router.post("/stop/:network/:node", async (req, res) => {
     }
   });
 
-  res.send({ result: result_kill });
+  res.send({ result: "ok" });
+});
+
+function launchBootnode(DIR_NETWORK, BOOTNODE_PORT) {
+  console.log("creating bootnode");
+  execSync(`bootnode -genkey ${DIR_NETWORK}/boot.key`);
+  console.log("Launching bootnode");
+  /* var result = execSync(
+    `bootnode -nodekey ${DIR_NETWORK}/boot.key -addr :${BOOTNODE_PORT}`
+  ); */
+
+  const params = [
+    "-nodekey",
+    `${DIR_NETWORK}/boot.key`,
+    "-addr",
+    `:${BOOTNODE_PORT}`,
+  ];
+
+  // Exxecute the command as a subprocess
+  const out = fs.openSync(`./${DIR_NETWORK}/bootnode.log`, "w");
+  const err = fs.openSync(`./${DIR_NETWORK}/bootnode.log`, "a");
+  try {
+    const subprocess = spawn("bootnode", params, {
+      detached: true,
+      stdio: ["ignore", out, err],
+    });
+
+    console.log("subprocess");
+    console.log(subprocess);
+
+    fs.writeFileSync(
+      `${DIR_NETWORK}/paramsBootnode.json`,
+      JSON.stringify({ subproceso: subprocess }, null, 4)
+    );
+
+    try {
+      // Read file boot.key
+      const bootkey = fs.readFileSync(`${DIR_NETWORK}/boot.key`).toString();
+      const enodeKeyOut = fs.openSync(`./${DIR_NETWORK}/enodeKey.log`, "w");
+      const enodeKeyErr = fs.openSync(`./${DIR_NETWORK}/enodeKey.log`, "a");
+
+      const enodeKey = spawn(
+        "bootnode",
+        ["-nodekeyhex", bootkey, "-writeaddress"],
+        {
+          detached: true,
+          stdio: ["ignore", enodeKeyOut, enodeKeyErr],
+        }
+      );
+    } catch (e) {
+      console.log(e);
+    }
+
+    //subprocess.unref();
+  } catch (e) {
+    console.log(e);
+  }
+}
+
+router.post("/startbootnode/:network", async (req, res) => {
+  const NUMERO_NETWORK = parseInt(req.params.network);
+  const NETWORK_DIR = `ETH/eth${NUMERO_NETWORK}`;
+  const BOOTNODE_PORT = 30305 + NUMERO_NETWORK;
+  launchBootnode(NETWORK_DIR, BOOTNODE_PORT);
+
+  res.send({ result: "done" });
+});
+
+router.post("/stopbootnode/:network", async (req, res) => {
+  const NUMERO_NETWORK = parseInt(req.params.network);
+  const NETWORK_DIR = `ETH/eth${NUMERO_NETWORK}`;
+
+  // const params = fs.readdirSync(`${DIR_NODE}/paramsNodoRunning.json`);
+  var params = fs.readFileSync(`${NETWORK_DIR}/paramsBootnode.json`).toString();
+
+  // Convert to JSON
+  params = JSON.parse(params);
+
+  const result_kill = await ps.kill(params.subproceso.pid, function (err) {
+    if (err) {
+      throw new Error(err);
+    } else {
+      console.log("Process %s has been killed!", params.subproceso.pid);
+      // Delete the files of the enodekey and the boot.key
+      deleteIfExists(`${NETWORK_DIR}/enodeKey.log`);
+      deleteIfExists(`${NETWORK_DIR}/boot.key`);
+      deleteIfExists(`${NETWORK_DIR}/bootnode.log`);
+      deleteIfExists(`${NETWORK_DIR}/paramsBootnode.json`);
+    }
+  });
+
+  setTimeout(() => {
+    res.send({ result: result_kill });
+  }, 1000);
 });
