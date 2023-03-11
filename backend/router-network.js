@@ -407,7 +407,7 @@ router.post("/reload/:network", (req, res) => {
   const output = nodos.map((i) =>
     JSON.parse(fs.readFileSync(`${NETWORK_DIR}/${i.name}/paramsNodo.json`))
   );
-  const puertos = output.map((i) => ({ port: i.nodo?.http_port }));
+  const puertos = output.map((i) => ({ port: i.nodo.http_port }));
 
   const keynode = output.map((i) => ({
     nodekey: fs.readFileSync(`${i.nodo.dir_node}/geth/nodekey`).toString(),
@@ -611,4 +611,106 @@ router.post("/stop/:network/:node", async (req, res) => {
   });
 
   res.send({ result: result_kill });
+});
+router.post("/lastblock/:network/:node", (req, res) => {
+  const NUMERO_NETWORK = parseInt(getNumbersInString(req.params.network));
+  const NUMERO_NODO = parseInt(getNumbersInString(req.params.node));
+
+  const parametros = generateParameter(NUMERO_NETWORK, NUMERO_NODO);
+
+  const {
+    NETWORK_DIR,
+    DIR_NODE,
+    NETWORK_CHAINID,
+    AUTHRPC_PORT,
+    HTTP_PORT,
+    PORT,
+    IPCPATH,
+  } = parametros;
+
+  // // geth attach --exec "eth.blockNumber// eth.getBlock(0).hash // eth.getBlockByNumber(0)" http://localhost:
+  const comando =
+    'geth attach --exec "eth.blockNumber" http://localhost:' + HTTP_PORT;
+  const resultado = exec(comando, (error, stdout, stderr) => {
+    console.log("ejecutado");
+    if (error) {
+      console.log({ error });
+      return;
+    }
+    
+    //console.log(resultado);
+    console.log("RESULTADO");
+
+    console.log({ Salida: stdout });
+    console.log(HTTP_PORT);
+    res.send({ Salida: stdout });
+  });
+});
+router.post("/block/:network/:node/:block", (req, res) => {
+  const NUMERO_NETWORK = parseInt(getNumbersInString(req.params.network));
+  const NUMERO_NODO = parseInt(getNumbersInString(req.params.node));
+  const NUMERO_BLOCK = parseInt(getNumbersInString(req.params.block));
+  const parametros = generateParameter(NUMERO_NETWORK, NUMERO_NODO);
+
+  const {
+    NETWORK_DIR,
+    DIR_NODE,
+    NETWORK_CHAINID,
+    AUTHRPC_PORT,
+    HTTP_PORT,
+    PORT,
+    IPCPATH,
+  } = parametros;
+
+  // // geth attach --exec "eth.blockNumber// eth.getBlock(0).hash // eth.getBlockByNumber(0)" http://localhost:
+  const comando =
+    'geth attach --exec "eth.getBlockByNumber('+NUMERO_BLOCK+')" http://localhost:' + HTTP_PORT;
+  const resultado = exec(comando, (error, stdout, stderr) => {
+    console.log("ejecutado");
+    if (error) {
+      console.log({ error });
+      return;
+    }
+    
+    //console.log(resultado);
+    console.log("RESULTADO");
+
+    console.log({ Salida: stdout });
+   
+    res.send({stdout});
+  });
+});
+router.post("/blocktx/:network/:node/:tx", (req, res) => {
+  const NUMERO_NETWORK = parseInt(getNumbersInString(req.params.network));
+  const NUMERO_NODO = parseInt(getNumbersInString(req.params.node));
+  const HASHTX = req.params.tx;
+  const parametros = generateParameter(NUMERO_NETWORK, NUMERO_NODO);
+
+  const {
+    NETWORK_DIR,
+    DIR_NODE,
+    NETWORK_CHAINID,
+    AUTHRPC_PORT,
+    HTTP_PORT,
+    PORT,
+    IPCPATH,
+  } = parametros;
+
+  // // geth attach --exec "eth.blockNumber// eth.getBlock(0).hash // eth.getBlockByNumber(0)" http://localhost:
+  const comando =
+    'geth attach --exec "eth.getTransactionByHash('+HASHTX+')" http://localhost:' + HTTP_PORT;
+  const resultado = exec(comando, (error, stdout, stderr) => {
+    console.log("ejecutado");
+    if (error) {
+      console.log({ error });
+      return;
+    }
+    
+    //console.log(resultado);
+    console.log("RESULTADO");
+
+    console.log({ Salida: stdout });
+   
+    res.send({stdout});
+  });
 });

@@ -1,5 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState} from "react";
 import axios from "axios";
+import { OperarRedes } from "./OperarRedes"
+import { Wallet } from "./Wallet";
+
 
 export const NetworkList = () => {
   // useState to store the network list
@@ -328,7 +331,7 @@ export const NetworkList = () => {
       console.log(error);
     }
   }
-  //reload/:network
+  //reload/:network {node.status != "OK" ? "Red no operativa":<OperarRedes network={network.numero} status={node.status} ></OperarRedes>}
   return (
     <div>
       <div className="card card-custom">
@@ -393,6 +396,7 @@ export const NetworkList = () => {
                             </div>
                           </div>
                         )}
+                        {node.status !="OK"?"Red no operativa":<OperarRedes network={network.numero} node={node.name}></OperarRedes>}
                       </div>
                     ))}
                     <div className="mb-4">
@@ -404,8 +408,11 @@ export const NetworkList = () => {
                       >
                         Add Node {network.nodes.length + 1}
                       </button>
+                      
+                     
                     </div>
                   </div>
+                  
                 </div>
               ))}
           </div>
@@ -424,7 +431,9 @@ export const NetworkList = () => {
             Add Network ID
           </button>
         </p>
+        <Wallet></Wallet>
       </div>
+      
     </div>
   );
 };
