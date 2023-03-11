@@ -742,40 +742,18 @@ router.post("/block/:network/:node/:block", (req, res) => {
   console.log("NUMERO_BLOCK");
   console.log(NUMERO_BLOCK);
   // convert to hexadecimal
-  const hexa = parseInt(data.value, NUMERO_BLOCK, 16);
+  //const hexa = parseInt(NUMERO_BLOCK, 16);
+  const hexa = "0x" + NUMERO_BLOCK.toString(16);
 
   console.log("hexa");
   console.log(hexa);
-
-  /* const comando =
-    'geth attach --exec "eth.getBlockByNumber(' +
-    NUMERO_BLOCK +
-    ')" ' +
-    NODE_URL +
-    ":" +
-    HTTP_PORT;
-
-  const resultado = exec(comando, (error, stdout, stderr) => {
-    console.log("ejecutado");
-    if (error) {
-      console.log({ error });
-      return;
-    }
-
-    //console.log(resultado);
-    console.log("RESULTADO");
-
-    console.log({ Salida: stdout });
-
-    res.send({ stdout });
-  }); */
 
   var myHeaders = new Headers();
   myHeaders.append("Content-Type", "application/json");
 
   var raw = JSON.stringify({
     method: "eth_getBlockByNumber",
-    params: [`0x${hexa}`, false],
+    params: [hexa, false],
     id: 1,
     jsonrpc: "2.0",
   });

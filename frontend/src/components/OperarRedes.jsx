@@ -145,9 +145,6 @@ export const OperarRedes = (props) => {
         <div className="card">
           <div className="card-body">
             <h5 className="card-title">Block data {blockdata.hash}</h5>
-            <div>
-              <strong>Transactions:</strong> {blockdata.transactions}
-            </div>
 
             {blockdata.transactions &&
               blockdata.transactions.map((transaction) => (
