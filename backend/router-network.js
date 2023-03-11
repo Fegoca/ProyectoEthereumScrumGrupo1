@@ -742,7 +742,7 @@ router.post("/block/:network/:node/:block", (req, res) => {
   console.log("NUMERO_BLOCK");
   console.log(NUMERO_BLOCK);
   // convert to hexadecimal
-  const hexa = NUMERO_BLOCK.toString(16);
+  const hexa = parseInt(data.value, NUMERO_BLOCK, 16);
 
   console.log("hexa");
   console.log(hexa);

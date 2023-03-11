@@ -38,13 +38,13 @@ export function Wallet() {
       });
   };
   function transferETH(data) {
-    console.log("data*****");
-    console.log(data);
+    var value =
+      "0x" + parseInt(web3.utils.toWei(data.value, "ether")).toString(16);
+
     const txparams = {
       from: cuenta,
       to: data.toadress,
-      //value: ethers.utils.parseEther(data.value)
-      value: web3.utils.toWei(data.value, "ether"),
+      value: value,
     };
     try {
       window.ethereum.request({
@@ -55,9 +55,6 @@ export function Wallet() {
     } catch (error) {
       setTxstatus("Error al realizar la transacción");
     }
-
-    console.log(data.toadress);
-    console.log(data.value);
   }
 
   window.ethereum.on("accountsChanged", accountChangedHandler);
