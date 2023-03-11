@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const fs = require("fs");
 var ps = require("ps-node");
+const Web3 = require("web3");
 
 const { exec, execSync, spawn, spawnSync } = require("child_process");
 const { send } = require("process");
@@ -387,8 +388,8 @@ router.get("/", async (req, res) => {
     .filter((i) => i != null);
 
   // loop the output and check the bootnode status
-  for (let index = 0; index < output.length; index++) {
-    const network = output[index];
+  for (let network_index = 0; network_index < output.length; network_index++) {
+    const network = output[network_index];
     network.bootnode = "down";
 
     var paramsBootnodeFile = `ETH/${network.numero}/paramsBootnode.json`;
@@ -399,6 +400,15 @@ router.get("/", async (req, res) => {
       // Convert to JSON
       params = JSON.parse(params);
       network.bootnode = await checkPidStatus(params.subproceso.pid);
+    }
+
+    // loop the nodes and check the status
+    for (let node_index = 0; node_index < network.nodes.length; node_index++) {
+      const node = network.nodes[node_index];
+      node.status = await checkNodeStatus(network_index + 1, node_index + 1);
+      console.log("node.status **************");
+      console.log(node.status);
+      //node.status = await checkPidStatus(node.subproceso.pid);
     }
   }
   console.log("output **************");
@@ -432,22 +442,39 @@ async function checkNodeStatus(NUMERO_NETWORK, NUMERO_NODO) {
   const parametros = generateParameter(NUMERO_NETWORK, NUMERO_NODO);
   const { HTTP_PORT } = parametros;
 
-  const comando =
-    'geth attach --exec "net.listening" http://localhost:' + HTTP_PORT;
-  const resultado = await exec(comando, (error, stdout, stderr) => {
-    console.log("ejecutado");
-    if (error) {
-      res.send({ error });
-      return;
-    }
-    console.log("RESULTADO");
+  var myHeaders = new Headers();
+  myHeaders.append("Content-Type", "application/json");
 
-    console.log({ Salida: stdout });
-    return stdout;
+  var raw = JSON.stringify({
+    method: "net_listening",
+    params: [],
+    id: 67,
+    jsonrpc: "2.0",
   });
+
+  var requestOptions = {
+    method: "POST",
+    headers: myHeaders,
+    body: raw,
+    redirect: "follow",
+  };
+  var status = "DOWN";
+  await fetch(NODE_URL + ":" + HTTP_PORT, requestOptions)
+    .then((response) => response.text())
+    .then((result) => {
+      // Convert to JSON
+      result = JSON.parse(result);
+      console.log("result");
+      console.log(result.result);
+      console.log("from");
+      console.log(result.result.from);
+      if (result.result) status = "OK";
+    })
+    .catch((error) => console.log("error", error));
+  return status;
 }
 
-router.post("/status/:network/:node", (req, res) => {
+/* router.post("/status/:network/:node", (req, res) => {
   const NUMERO_NETWORK = parseInt(req.params.network);
   const NUMERO_NODO = parseInt(req.params.node);
   const parametros = generateParameter(NUMERO_NETWORK, NUMERO_NODO);
@@ -476,7 +503,7 @@ router.post("/status/:network/:node", (req, res) => {
     console.log({ Salida: stdout });
     res.send({ Salida: stdout });
   });
-});
+}); */
 
 router.post("/start/:network/:node", async (req, res) => {
   const NUMERO_NETWORK = parseInt(req.params.network);
@@ -705,15 +732,7 @@ router.post("/lastblock/:network/:node", (req, res) => {
 
   const parametros = generateParameter(NUMERO_NETWORK, NUMERO_NODO);
 
-  const {
-    NETWORK_DIR,
-    DIR_NODE,
-    NETWORK_CHAINID,
-    AUTHRPC_PORT,
-    HTTP_PORT,
-    PORT,
-    IPCPATH,
-  } = parametros;
+  const { HTTP_PORT } = parametros;
 
   const comando =
     'geth attach --exec "eth.blockNumber" ' + NODE_URL + ":" + HTTP_PORT;
@@ -790,15 +809,7 @@ router.post("/blocktx/:network/:node/:tx", (req, res) => {
   const HASHTX = req.params.tx;
   const parametros = generateParameter(NUMERO_NETWORK, NUMERO_NODO);
 
-  const {
-    NETWORK_DIR,
-    DIR_NODE,
-    NETWORK_CHAINID,
-    AUTHRPC_PORT,
-    HTTP_PORT,
-    PORT,
-    IPCPATH,
-  } = parametros;
+  const { HTTP_PORT } = parametros;
 
   var myHeaders = new Headers();
   myHeaders.append("Content-Type", "application/json");
@@ -841,4 +852,50 @@ router.post("/blocktx/:network/:node/:tx", (req, res) => {
   } catch (error) {
     console.log(error);
   }
+});
+
+function getAccountFromKeystore(DIR_NODE) {
+  // loop the files inside DIR_NODE
+  const keystore_path = DIR_NODE + "/keystore";
+  console.log("DIR_NODE");
+  console.log(DIR_NODE);
+  /* const accounts = fs
+    .readdirSync(`${DIR_NODE}/keystore/${j.name}`, { withFileTypes: true })
+    .filter((j) => j.isFile()); */
+
+  const accountFile = fs.readdirSync(`${DIR_NODE}/keystore`)[0];
+  console.log("accountFile");
+  console.log(accountFile);
+  /* const address = JSON.parse(
+    fs.readFileSync(`${DIR_NODE}/keystore/${lista[0]}`).toString()
+  ).address; */
+
+  const json = JSON.parse(
+    fs.readFileSync(`${DIR_NODE}/keystore/${accountFile}`)
+  );
+  const web3 = new Web3("http://localhost:9566");
+  console.log(`${DIR_NODE}/pwd`);
+  const password = fs.readFileSync(`${DIR_NODE}/pwd`).toString();
+  const account = web3.eth.accounts.decrypt(json, password);
+  console.log("account");
+  console.log(account);
+  return account;
+}
+
+router.post("/faucet/:network/:node/:address", (req, res) => {
+  const NUMERO_NETWORK = parseInt(getNumbersInString(req.params.network));
+  const NUMERO_NODO = parseInt(getNumbersInString(req.params.node));
+  const ADDRESS = req.params.address;
+  const parametros = generateParameter(NUMERO_NETWORK, NUMERO_NODO);
+  const {
+    NETWORK_DIR,
+    DIR_NODE,
+    NETWORK_CHAINID,
+    AUTHRPC_PORT,
+    HTTP_PORT,
+    PORT,
+    IPCPATH,
+  } = parametros;
+
+  const account = getAccountFromKeystore(DIR_NODE);
 });

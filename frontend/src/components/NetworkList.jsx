@@ -2,12 +2,14 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { OperarRedes } from "./OperarRedes";
 import { Wallet } from "./Wallet";
+import loader from "../assets/loader.gif";
 
 export const NetworkList = () => {
   // useState to store the network list
   const [network, setNetwork] = useState([]);
   const [message, setMessage] = useState(null);
-  const [nodeStatus, setNodeStatus] = useState([]);
+  const [modalBoxFlag, setModalBoxFlag] = useState(false);
+  const [loaderFlag, setLoaderFlag] = useState(false);
 
   const url = "http://localhost:3000";
   //sacar numeros de cadena
@@ -28,15 +30,25 @@ export const NetworkList = () => {
     getNetworks();
   }, []);
 
+  function showLoader() {
+    setModalBoxFlag(true);
+    setLoaderFlag(true);
+  }
+
+  function hideLoader() {
+    setModalBoxFlag(false);
+    setLoaderFlag(false);
+  }
+
   // get networks function async to be called in useEffect
   async function getNetworks() {
+    showLoader();
     axios
       .get(url + "/network")
       .then((response) => {
         console.log(response.data);
-        var networkdata = response.data;
-        checkNodeStatus(networkdata);
         setNetwork(response.data);
+        hideLoader();
       })
       .catch((error) => {
         console.log(error);
@@ -51,6 +63,7 @@ export const NetworkList = () => {
     };
     console.log("data");
     console.log(data); */
+    showLoader();
     console.log("Adding network ... ");
     const requestOptions = {
       method: "POST",
@@ -76,6 +89,7 @@ export const NetworkList = () => {
   }
 
   async function startNode(network, node) {
+    showLoader();
     var networkNum = getNumbersInString(network);
     var nodeNum = getNumbersInString(node);
     console.log("Starting node ... ");
@@ -101,6 +115,7 @@ export const NetworkList = () => {
             networkNum +
             " is down, please start it first"
         );
+        hideLoader();
       } else {
         // reload the page
         window.location.reload();
@@ -112,6 +127,7 @@ export const NetworkList = () => {
   }
 
   async function stopNode(network, node) {
+    showLoader();
     var networkNum = getNumbersInString(network);
     var nodeNum = getNumbersInString(node);
     console.log("Starting node ... ");
@@ -138,6 +154,7 @@ export const NetworkList = () => {
   }
 
   async function startBootnode(network) {
+    showLoader();
     var networkNum = getNumbersInString(network);
     console.log("stopBootnode ... ");
     const requestOptions = {
@@ -163,6 +180,7 @@ export const NetworkList = () => {
   }
 
   async function stopBootnode(network) {
+    showLoader();
     var networkNum = getNumbersInString(network);
     console.log("stopBootnode ... ");
     const requestOptions = {
@@ -188,6 +206,7 @@ export const NetworkList = () => {
   }
 
   async function addNetwork2(network) {
+    showLoader();
     /* const data = {
       network: network.length + 1,
       node: 1,
@@ -217,91 +236,8 @@ export const NetworkList = () => {
     }
   }
 
-  // Preguntar a chat
-
-  async function checkNodeStatus(networkdata) {
-    console.log("check status ");
-
-    //constante requestOptions
-    const requestOptions = {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
-    };
-
-    //copia del network
-    //var networkOut = JSON.parse(JSON.stringify(networkdata));
-    var valores = [];
-    var status = "";
-    for (let i = 0; i < networkdata.length; i++) {
-      for (let j = 0; j < networkdata[i].nodes.length; j++) {
-        try {
-          /* setTimeout(()=> {
-             console.log("Esperando Status:"+networkdata[i].numero+networkdata[i].nodes[j].name)
-          }
-          ,200);*/
-          const response = await fetch(
-            url +
-              "/network/status/" +
-              getNumbersInString(networkdata[i].numero) +
-              "/" +
-              getNumbersInString(networkdata[i].nodes[j].name),
-            requestOptions
-          );
-          console.log(
-            "FETCH:" +
-              url +
-              "/network/status/" +
-              getNumbersInString(networkdata[i].numero) +
-              "/" +
-              getNumbersInString(networkdata[i].nodes[j].name)
-          );
-
-          var data = await response.json();
-          //console.log("DATA RAW");
-          //console.log(data.Salida);
-          //si da error que sea NOT OK
-
-          if (data.Salida != "true\n") {
-            data = "NOT OK";
-            networkdata[i].nodes[j].status = data;
-            status =
-              networkdata[i].numero +
-              " " +
-              networkdata[i].nodes[j].name +
-              " " +
-              data +
-              " / ";
-            valores.push(status);
-          } else {
-            data = "OK";
-            networkdata[i].nodes[j].status = data;
-            status =
-              networkdata[i].numero +
-              " " +
-              networkdata[i].nodes[j].name +
-              " " +
-              data +
-              " / ";
-            valores.push(status);
-          }
-          //console.log("DATA despues de filtrar error");
-          console.log(data);
-          //indice nodo
-          //setNodecount(valores.length-1)
-          //metemos los datos al useState.
-          //setNodeStatus(valores)
-        } catch (error) {
-          console.log("error");
-          console.log(error);
-        }
-      }
-    }
-    //console.log(JSON.stringify(networkdata))
-    //setcopianetwork(networkdata)
-    setNodeStatus(valores);
-  }
   async function deleteNetwork(network) {
+    showLoader();
     console.log("delete network ... ");
     const requestOptions = {
       method: "DELETE",
@@ -326,6 +262,7 @@ export const NetworkList = () => {
   }
 
   async function deleteNode(network, nodeNum) {
+    showLoader();
     var networkNum = getNumbersInString(network);
     console.log("delete node ... ");
     const requestOptions = {
@@ -359,6 +296,7 @@ export const NetworkList = () => {
   }
 
   async function addNode(netNumber, nodenum) {
+    showLoader();
     //"/add/:network/:node"
     var nextNet = getNumbersInString(netNumber);
     console.log(nextNet);
@@ -395,50 +333,36 @@ export const NetworkList = () => {
       window.location.reload();
     }
   }
-  async function reloadNetwork(netWorkReload) {
-    //"/add/:network/:node"
 
-    var nextNet = getNumbersInString(netWorkReload);
-
-    console.log("Red a levantar: " + netWorkReload);
-
-    const requestOptions = {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
-    };
-
-    try {
-      const response = await fetch(
-        url + "/network/" + "reload/" + netWorkReload,
-        requestOptions
-      );
-      const data = await response.json();
-      console.log("data");
-      console.log(data);
-      // reload the page
-      window.location.reload();
-    } catch (error) {
-      console.log("error");
-      console.log(error);
-    }
-  }
   //reload/:network {node.status != "OK" ? "Red no operativa":<OperarRedes network={network.numero} status={node.status} ></OperarRedes>}
   return (
     <div>
       <div className="card card-custom">
         <h5 className="card-header">NETWORKS</h5>
-
-        <div id="warning_message" className="p-3 mb-2 bg-warning text-dark">
-          {message}
-        </div>
+        {message && message.length > 0 && (
+          <div id="warning_message" className="p-3 mb-2 bg-warning text-dark">
+            {message}
+          </div>
+        )}
+        {modalBoxFlag && (
+          <div id="modal_box" className="crypto_modal_box">
+            {loaderFlag && (
+              <img src={loader} alt="loader" className="crypto_modal_loader" />
+            )}
+          </div>
+        )}
 
         <div className="card-body">
           <p></p>
+          {console.log("network[0]")}
+          {console.log(network[1])}
           <div className="d-flex flex-wrap justify-content-center">
             {network &&
               network.map((network) => (
-                <div className="card card-custom" key={network.chainid}>
+                <div
+                  className="card card-custom card-custom-max-with"
+                  key={network.chainid}
+                >
                   <h5 className="card-header">Network {network.numero}</h5>
                   <div className="card-body">
                     <p className="card-text">Chain id: {network.chainid}</p>
@@ -485,7 +409,8 @@ export const NetworkList = () => {
                         key={node.name}
                       >
                         <div className="bg-info">{node.name} </div>
-
+                        {console.log("node.status")}
+                        {console.log(node.status)}
                         {node.status != "OK" ? (
                           <div>
                             <div className="mb-2 bg-warning text-dark">
@@ -582,7 +507,6 @@ export const NetworkList = () => {
             Add Network {network.length + 1}
           </button>
         </div>
-
         {/* <p>
           <button
             onClick={() => hacerPregunta()}
@@ -592,7 +516,6 @@ export const NetworkList = () => {
           </button>
 
         </p> */}
-
         <Wallet></Wallet>
       </div>
     </div>

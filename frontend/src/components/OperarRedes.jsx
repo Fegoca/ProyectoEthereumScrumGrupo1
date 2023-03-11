@@ -8,7 +8,7 @@ export const OperarRedes = (props) => {
   const { register, handleSubmit, errors } = useForm();
   const [lastblock, setLastBlock] = useState();
   const [blockdata, setBlockData] = useState([]);
-  const [tx, setTx] = useState([]);
+  const [tx, setTx] = useState(null);
 
   useEffect(() => {
     getLastBlock(props.network, props.node);
@@ -17,6 +17,38 @@ export const OperarRedes = (props) => {
     var blockdata = parseInt(data.blocktoread);
     getBlockData(props.network, props.node, blockdata);
   }
+
+  async function faucet(data) {
+    console.log(data.address);
+
+    const requestOptions = {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    };
+    try {
+      const response = await fetch(
+        url +
+          "/network/" +
+          "/faucet/" +
+          props.network +
+          "/" +
+          props.node +
+          "/" +
+          data.address,
+        requestOptions
+      );
+      const datos = await response.json();
+      console.log("datos");
+      console.log(datos);
+      // reload the page
+      //window.location.reload();
+    } catch (error) {
+      console.log("error");
+      console.log(error);
+    }
+  }
+
   async function onSubmit2(data) {
     //var datatx=parseInt(data.txid);
     //var datahex= ('0000' + datatx.toString(16).toUpperCase()).slice(-4);
@@ -77,13 +109,13 @@ export const OperarRedes = (props) => {
   }
 
   //dada una transacción  ver -from -to -amount -hash -fee -timestamp -confirmations -blockhash -blockheight
-  async function getTx(net, node, tx) {
+  async function getTx(net, node, param_tx) {
     console.log("net");
     console.log(net);
     console.log("node");
     console.log(node);
-    console.log("tx");
-    console.log(tx);
+    console.log("param_tx");
+    console.log(param_tx);
     const requestOptions = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -92,13 +124,12 @@ export const OperarRedes = (props) => {
 
     try {
       const response = await fetch(
-        url + "/network/" + "blocktx/" + net + "/" + node + "/" + tx,
+        url + "/network/" + "blocktx/" + net + "/" + node + "/" + param_tx,
         requestOptions
       );
       const data = await response.json();
       console.log("data");
       console.log(data[0]);
-      console.log(data[0].from);
       // Create an empty array
       //web3.utils.fromWei(parseInt(tx.value, 16), "ether");
       var aux = {
@@ -130,6 +161,25 @@ export const OperarRedes = (props) => {
   return (
     <div>
       <h5>Operar redes {props.network} </h5>
+      <div className="card mb-4">
+        <p>
+          <strong>FAUCET</strong>
+        </p>
+        <form onSubmit={handleSubmit(faucet)}>
+          <div className="mb-2">
+            Address: <input type="number" min="0" {...register("address")} />
+          </div>
+
+          <div className="mb-4">
+            <input
+              className="mb-2 btn btn-primary"
+              type="submit"
+              value="Send 100 ETH"
+            />
+          </div>
+        </form>
+      </div>
+
       <p>
         Bloques: {parseInt(lastblock) + 1} Último bloque: {lastblock}
       </p>
@@ -176,6 +226,8 @@ export const OperarRedes = (props) => {
       </form>
 
       <div>
+        {console.log("tx")}
+        {console.log(tx)}
         {tx && (
           <div className="card">
             <div className="card-body">

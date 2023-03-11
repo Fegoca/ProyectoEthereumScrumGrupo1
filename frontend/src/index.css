@@ -2,3 +2,21 @@
   margin: 10px;
   text-align: center;
 }
+
+.card-custom-max-with {
+  max-width: 350px;
+}
+
+.crypto_modal_box{
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: #ffffffeb;
+  z-index: 999;
+}
+
+.crypto_modal_loader{
+  position: relative;
+  top: 45%;
+}
+
