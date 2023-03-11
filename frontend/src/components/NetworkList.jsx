@@ -67,6 +67,7 @@ export const NetworkList = () => {
       // reload the page
       window.location.reload();
     } catch (error) {
+      window.location.reload();
       console.log("error");
       console.log(error);
     }
@@ -307,7 +308,10 @@ export const NetworkList = () => {
     };
 
     try {
-      const response = await fetch(url + "/network/" + network, requestOptions);
+      const response = await fetch(
+        url + "/network/net/" + network,
+        requestOptions
+      );
       const data = await response.json();
       console.log("data");
       console.log(data);
@@ -316,6 +320,32 @@ export const NetworkList = () => {
     } catch (error) {
       console.log("error");
       console.log(error);
+    }
+  }
+
+  async function deleteNode(network, nodeNum) {
+    var networkNum = getNumbersInString(network);
+    console.log("delete node ... ");
+    const requestOptions = {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    };
+
+    try {
+      const response = await fetch(
+        url + "/network/node/" + networkNum + "/" + nodeNum,
+        requestOptions
+      );
+      const data = await response.json();
+      console.log("data");
+      console.log(data);
+      // reload the page
+      window.location.reload();
+    } catch (error) {
+      console.log("error");
+      console.log(error);
+      window.location.reload();
     }
   }
 
@@ -358,8 +388,9 @@ export const NetworkList = () => {
       // reload the page
       window.location.reload();
     } catch (error) {
-      console.log("error");
+      console.log("error***********");
       console.log(error);
+      window.location.reload();
     }
   }
   async function reloadNetwork(netWorkReload) {
@@ -406,22 +437,12 @@ export const NetworkList = () => {
             {network &&
               network.map((network) => (
                 <div className="card card-custom" key={network.chainid}>
-                  <h5 className="card-header">
-                    {network.numero} .............{" "}
-                    <button
-                      onClick={() => deleteNetwork(network.numero)}
-                      className="btn btn-danger btn-sm"
-                    >
-                      DELETE
-                    </button>
-                  </h5>
+                  <h5 className="card-header">Network {network.numero}</h5>
                   <div className="card-body">
                     <p className="card-text">Chain id: {network.chainid}</p>
 
                     <div className="bg-dark text-white">BOOTNODE </div>
-                    {network.enodekey === undefined ||
-                    network.enodekey === null ||
-                    network.enodekey === "" ? (
+                    {"down" === network.bootnode ? (
                       <div>
                         <div className="mb-2 bg-warning text-dark">
                           Status: <span>Down</span>
@@ -462,10 +483,14 @@ export const NetworkList = () => {
                         key={node.name}
                       >
                         <div className="bg-info">{node.name} </div>
+
                         {node.status != "OK" ? (
                           <div>
                             <div className="mb-2 bg-warning text-dark">
                               Status: <span>Down</span>
+                            </div>
+                            <div className="mb-2">
+                              http port: {node.http_port}
                             </div>
                             <div>
                               <button
@@ -483,6 +508,9 @@ export const NetworkList = () => {
                             <div className="mb-2 bg-success text-dark">
                               Status: <span>UP</span>
                             </div>
+                            <div className="mb-2">
+                              http port: {node.http_port}
+                            </div>
                             <div>
                               <button
                                 onClick={() =>
@@ -497,7 +525,22 @@ export const NetworkList = () => {
                         )}
                       </div>
                     ))}
-                    <div className="mb-4">
+
+                    <div className="mb-1">
+                      {network.nodes.length > 0 ? (
+                        <button
+                          onClick={() =>
+                            deleteNode(network.numero, network.nodes.length)
+                          }
+                          className="mb-2 btn btn-danger btn-sm"
+                        >
+                          Remove Node {network.nodes.length}
+                        </button>
+                      ) : (
+                        <div></div>
+                      )}
+                    </div>
+                    <div className="mb-1">
                       <button
                         onClick={() =>
                           addNode(network.numero, network.nodes.length + 1)
@@ -512,20 +555,32 @@ export const NetworkList = () => {
               ))}
           </div>
         </div>
-        <div>
-          <button onClick={() => addNetwork()} className="btn btn-primary mb-3">
+        <div className="mb-1">
+          {network.length > 0 ? (
+            <button
+              onClick={() => deleteNetwork(network.length)}
+              className="mb-2 btn btn-danger"
+            >
+              Remove Network {network.length}
+            </button>
+          ) : (
+            <div></div>
+          )}
+        </div>
+        <div className="mb-1">
+          <button onClick={() => addNetwork()} className="btn btn-success mb-2">
             Add Network {network.length + 1}
           </button>
         </div>
 
-        <p>
+        {/* <p>
           <button
             onClick={() => hacerPregunta()}
             className="btn btn-primary mb-3"
           >
             Add Network ID
           </button>
-        </p>
+        </p> */}
       </div>
     </div>
   );

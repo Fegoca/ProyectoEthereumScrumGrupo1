@@ -10,7 +10,7 @@ module.exports = router;
 
 const PASSWORD = "123456";
 const BALANCE = "1500000000000000000000000000";
-const MICUENTA = "0x937fbAD70a9Eeb01d645399031fCA95182308800";
+const MICUENTA = "937fbAD70a9Eeb01d645399031fCA95182308800";
 const IP = "127.0.0.1";
 
 function getNumbersInString(string) {
@@ -26,81 +26,6 @@ function getNumbersInString(string) {
   return numbers.join("");
 }
 
-function launchNode(
-  NUMERO_NETWORK,
-  NUMERO_NODO,
-  DIR_NODE,
-  NETWORK_DIR,
-  IPCPATH,
-  NETWORK_CHAINID,
-  HTTP_PORT,
-  CUENTA,
-  PORT,
-  AUTHRPC_PORT,
-  BALANCE,
-  CUENTAS_ALLOC
-) {
-  const out2 = fs.openSync(`./${DIR_NODE}/outNodo.log`, "a");
-  const err2 = fs.openSync(`./${DIR_NODE}/outNodo.log`, "a");
-  const params = [
-    "--networkid",
-    NETWORK_CHAINID,
-    "--mine",
-    "--syncmode",
-    "full",
-    "--datadir",
-    DIR_NODE,
-    "--http.addr",
-    "0.0.0.0",
-    "--http",
-    "--http.corsdomain",
-    "*",
-    "--graphql",
-    "--http.port",
-    HTTP_PORT,
-    "--http.api",
-    "clique,admin,eth,miner,net,txpool,personal,web3",
-    "--allow-insecure-unlock",
-    "--unlock",
-    CUENTA,
-    "--password",
-    `${DIR_NODE}/pwd`,
-    "--port",
-    PORT,
-    "--authrpc.port",
-    AUTHRPC_PORT,
-    "--ipcpath",
-    IPCPATH,
-    "--nodiscover",
-    "--trace",
-    `${DIR_NODE}/trace.txt`,
-  ];
-
-  const nodo = {
-    network: NUMERO_NETWORK,
-    nodo: NUMERO_NODO,
-    network_dir: NETWORK_DIR,
-    dir_node: DIR_NODE,
-    port: PORT,
-    http_port: HTTP_PORT,
-    ipcpath: IPCPATH,
-    address: CUENTAS_ALLOC,
-    chainId: NETWORK_CHAINID,
-    authRpcPort: AUTHRPC_PORT,
-    prefund: BALANCE,
-  };
-  const subproceso2 = spawn("geth", params, {
-    detached: true,
-    stdio: ["ignore", out2, err2],
-  });
-  fs.writeFileSync(
-    `${DIR_NODE}/paramsNodo.json`,
-    JSON.stringify({ nodo, subproceso: subproceso2 }, null, 4)
-  );
-  subproceso2.unref();
-  return { nodo, subproceso: subproceso2 };
-}
-/*geth --authrpc.port 8551 --ipcpath "\\. \pipe\geth1.ipc"--datadir nodo1 --syncmode full --http --http.api admin,eth,miner,net,txpool,personal --http.port 8545 --allow-insecure-unlock --unlock "0xf7b6a1af7743b5ece588206fd473a7223f158cd4" --password pswd.txt --port 30034 --bootnodes "enode://0b6c00d5ff74908252a0d57f86c9dac1d30eb16b1cb8396d030702ec8a9dcb45c27ec339f11918f9f71b638ed89bd91f5dfe64764354dcdc1904e9f8d744d6fd@127.0.0.1:0?discport=30310"*/
 function generateParameter(network, node) {
   const NUMERO_NETWORK = parseInt(network);
   const NUMERO_NODO = parseInt(node);
@@ -156,14 +81,7 @@ function getAccount(DIR_NODE) {
   return address;
 }
 
-function getNodeData(DIR_NODE) {
-  const data = JSON.parse(
-    fs.readFileSync(`${DIR_NODE}/paramsNodo.json`).toString()
-  ).nodo;
-  return data;
-}
-
-function generateGenesis(
+async function generateGenesis(
   NETWORK_CHAINID,
   CUENTA,
   BALANCE,
@@ -179,11 +97,19 @@ function generateGenesis(
   genesis.extraData = `0x${"0".repeat(64)}${CUENTA}${"0".repeat(130)}`;
 
   genesis.alloc = CUENTAS_ALLOC.reduce((acc, item) => {
-    acc[item] = { balance: BALANCE };
+    acc[`0x${item}`] = { balance: BALANCE };
     return acc;
   }, {});
-
-  fs.writeFileSync(`${NETWORK_DIR}/genesis.json`, JSON.stringify(genesis));
+  console.log("CUENTAS_ALLOC");
+  console.log(CUENTAS_ALLOC);
+  console.log("genesis");
+  console.log(genesis);
+  console.log("BEFORE writeFileSync generateGenesis");
+  await fs.writeFileSync(
+    `${NETWORK_DIR}/genesis.json`,
+    JSON.stringify(genesis)
+  );
+  console.log("AFTER writeFileSync generateGenesis");
 }
 router.post("/create", async (req, res) => {
   //console.log("req.body -> " + req.body);
@@ -227,45 +153,77 @@ router.post("/create", async (req, res) => {
 
   const CUENTA = createAccount(DIR_NODE);
   console.log("CUENTA -> " + CUENTA);
-  const CUENTAS_ALLOC = [CUENTA, NUMERO_CUENTA];
+  const CUENTAS_ALLOC = [CUENTA, MICUENTA];
   console.log("CUENTAS_ALLOC -> " + CUENTAS_ALLOC);
 
-  generateGenesis(NETWORK_CHAINID, CUENTA, BALANCE, CUENTAS_ALLOC, NETWORK_DIR);
+  await generateGenesis(
+    NETWORK_CHAINID,
+    CUENTA,
+    BALANCE,
+    CUENTAS_ALLOC,
+    NETWORK_DIR
+  );
 
   // INICIALIZAMOS EL NODO
-  const comando = `geth --datadir ${DIR_NODE} init ${NETWORK_DIR}/genesis.json`;
-  // const comando = `docker run -d --rm -it -v ${DIR_NODE}/keystore:/data -v ${DIR_NODE}:/tmp -v ${NETWORK_DIR}:/genesis ethereum/client-go --datadir /tmp --keystore /data init /genesis/genesis.json`;
-  console.log("comando -> " + comando);
-  const result = init_node_from_genesis(comando);
-  const resultado = launchNode(
-    NUMERO_NETWORK,
-    NUMERO_NODO,
-    DIR_NODE,
-    NETWORK_DIR,
-    IPCPATH,
-    NETWORK_CHAINID,
-    HTTP_PORT,
-    CUENTA,
-    PORT,
-    AUTHRPC_PORT,
-    BALANCE,
-    CUENTAS_ALLOC
-  );
+  const result = await init_node_from_genesis(NETWORK_DIR, DIR_NODE);
 
   res.send(result);
 });
 
-async function init_node_from_genesis(comando) {
-  const result = exec(comando, (error, stdout, stderr) => {
-    console.log("ejecutado");
+async function init_node_from_genesis(NETWORK_DIR, DIR_NODE) {
+  console.log("init_node_from_genesis");
+  /* const comando = `geth --datadir ${DIR_NODE} init ${NETWORK_DIR}/genesis.json`;
+  console.log("comando");
+  console.log(comando); */
+
+  // Check if genesis.json exists in the network directory
+  if (!fs.existsSync(`${NETWORK_DIR}/genesis.json`)) {
+    console.log("genesis.json does not exist");
+  } else {
+    console.log("genesis.json exists");
+  }
+
+  // Fiile the params array with the command line arguments
+  const params = ["--datadir", DIR_NODE, "init", `${NETWORK_DIR}/genesis.json`];
+
+  try {
+    // Exxecute the command as a subprocess
+    const out = fs.openSync(`./${DIR_NODE}/initNodeGenesis.log`, "w");
+    const err = fs.openSync(`./${DIR_NODE}/initNodeGenesis.log`, "a");
+    const subprocess = spawn("geth", params, {
+      detached: true,
+      stdio: ["ignore", out, err],
+    });
+    console.log("out");
+    console.log(out);
+    console.log("err");
+    console.log(err);
+  } catch (error) {
+    console.log("START NODE error");
+    console.log(error);
+  }
+
+  /* const result = await exec(comando, (error, stdout, stderr) => {
+    console.log("stdout");
+    console.log(stdout);
+    console.log("stderr");
+    console.log(stderr);
+    fs.writeFileSync(
+      `${DIR_NODE}/initNodeGenesis.log`,
+      "stdout /n" + stdout + "/n stderr /n" + stderr
+    );
     if (error) {
+      console.log("Error in init node ");
+      console.log(error);
       return error;
     }
     return;
   });
+  console.log("result");
+  console.log(result); */
 }
 
-router.post("/create/:network/:node", (req, res) => {
+router.post("/create/:network/:node", async (req, res) => {
   const NUMERO_NETWORK = parseInt(getNumbersInString(req.params.network));
   const NUMERO_NODO = parseInt(getNumbersInString(req.params.node));
   const parametros = generateParameter(NUMERO_NETWORK, NUMERO_NODO);
@@ -288,37 +246,23 @@ router.post("/create/:network/:node", (req, res) => {
   const CUENTA = createAccount(DIR_NODE);
   const CUENTAS_ALLOC = [CUENTA, MICUENTA];
 
-  generateGenesis(NETWORK_CHAINID, CUENTA, BALANCE, CUENTAS_ALLOC, NETWORK_DIR);
+  console.log("BEFORE generateGenesis");
+  await generateGenesis(
+    NETWORK_CHAINID,
+    CUENTA,
+    BALANCE,
+    CUENTAS_ALLOC,
+    NETWORK_DIR
+  );
 
+  console.log("AFTER generateGenesis");
   // INICIALIZAMOS EL NODO
-  const comando = `geth --datadir ${DIR_NODE} init ${NETWORK_DIR}/genesis.json`;
+  const result = await init_node_from_genesis(NETWORK_DIR, DIR_NODE);
 
-  const result = exec(comando, (error, stdout, stderr) => {
-    console.log("ejecutado");
-    if (error) {
-      res.send({ error });
-      return;
-    }
-    const resultado = launchNode(
-      NUMERO_NETWORK,
-      NUMERO_NODO,
-      DIR_NODE,
-      NETWORK_DIR,
-      IPCPATH,
-      NETWORK_CHAINID,
-      HTTP_PORT,
-      CUENTA,
-      PORT,
-      AUTHRPC_PORT,
-      BALANCE,
-      CUENTAS_ALLOC
-    );
-
-    res.send(resultado);
-  });
+  res.send(result);
 });
 
-router.post("/add/:network/:node", (req, res) => {
+router.post("/add/:network/:node", async (req, res) => {
   const NUMERO_NETWORK = parseInt(req.params.network);
   const NUMERO_NODO = parseInt(req.params.node);
   const parametros = generateParameter(NUMERO_NETWORK, NUMERO_NODO);
@@ -337,44 +281,40 @@ router.post("/add/:network/:node", (req, res) => {
   createIfNotExists(DIR_NODE);
 
   const CUENTA = createAccount(DIR_NODE);
-  const CUENTAS_ALLOC = [CUENTA];
+  const CUENTAS_ALLOC = [CUENTA, MICUENTA];
 
-  const comando = `geth --datadir ${DIR_NODE} init ${NETWORK_DIR}/genesis.json`;
-
-  const result = exec(comando, (error, stdout, stderr) => {
-    console.log("ejecutado");
-    if (error) {
-      res.send({ error });
-      return;
-    }
-    const resultado = launchNode(
-      NUMERO_NETWORK,
-      NUMERO_NODO,
-      DIR_NODE,
-      NETWORK_DIR,
-      IPCPATH,
+  if (NUMERO_NODO === 1) {
+    console.log("2 BEFORE generateGenesis");
+    await generateGenesis(
       NETWORK_CHAINID,
-      HTTP_PORT,
       CUENTA,
-      PORT,
-      AUTHRPC_PORT,
       BALANCE,
-      CUENTAS_ALLOC
+      CUENTAS_ALLOC,
+      NETWORK_DIR
     );
-    res.send(resultado);
-  });
+    console.log("2 AFTER generateGenesis");
+  }
+  console.log("2 BEFORE init_node_from_genesis");
+  const result = await init_node_from_genesis(NETWORK_DIR, DIR_NODE);
+
+  setTimeout(() => {
+    res.send({ result: "ok" });
+  }, 1000);
 });
 
-router.delete("/:network", (req, res) => {
+router.delete("/net/:network", (req, res) => {
   const NETWORK = req.params.network;
-  const NETWORK_DIR = `ETH/${NETWORK}`;
+  const NETWORK_DIR = `ETH/eth${NETWORK}`;
+
+  // killPidifExist(NETWORK_DIR);
+
   const nodos = fs
     .readdirSync(NETWORK_DIR, { withFileTypes: true })
     .filter((i) => !i.isFile());
   const pids = nodos.map((i) => {
     try {
       return JSON.parse(
-        fs.readFileSync(`${NETWORK_DIR}/${i.name}/paramsNodo.json`)
+        fs.readFileSync(`${NETWORK_DIR}/${i.name}/paramsNodoRunning.json`)
       ).subproceso.pid;
     } catch (error) {
       console.log(error);
@@ -392,96 +332,21 @@ router.delete("/:network", (req, res) => {
       }
     });
 
-  fs.rmSync(NETWORK_DIR, { recursive: true });
-  res.send({ network: req.params.network });
+  deleteIfExists(NETWORK_DIR);
+  res.send({ result: "ok" });
 });
 
-router.post("/reload/:network", (req, res) => {
+router.delete("/node/:network/:node", (req, res) => {
   const NUMERO_NETWORK = parseInt(req.params.network);
+  const NUMERO_NODO = parseInt(req.params.node);
+
   const NETWORK_DIR = `ETH/eth${NUMERO_NETWORK}`;
-  console.log("intenta reload");
-  // los directorios
-  const nodos = fs
-    .readdirSync(NETWORK_DIR, { withFileTypes: true })
-    .filter((i) => !i.isFile());
-  // los datos de los nodos
-  const data = nodos.map((i) =>
-    JSON.parse(fs.readFileSync(`${NETWORK_DIR}/${i.name}/paramsNodo.json`))
-  );
-  // matamos los los procesos
-  const pids = data.map((i) => i.subproceso.pid);
+  const DIR_NODE = `${NETWORK_DIR}/nodo${NUMERO_NODO}`;
 
-  pids.forEach((i) => {
-    try {
-      process.kill(i);
-    } catch (error) {}
-  });
-  // generamos static-nodes.json
-  const output = nodos.map((i) =>
-    JSON.parse(fs.readFileSync(`${NETWORK_DIR}/${i.name}/paramsNodo.json`))
-  );
-  const puertos = output.map((i) => ({ port: i.nodo?.http_port }));
+  stopNode(DIR_NODE);
+  deleteIfExists(DIR_NODE);
 
-  const keynode = output.map((i) => ({
-    nodekey: fs.readFileSync(`${i.nodo.dir_node}/geth/nodekey`).toString(),
-    port: i.nodo.port,
-  }));
-  const enodes = keynode.map(
-    (i) =>
-      `enode://${spawnSync}("bootnode", [
-        "-nodekeyhex",
-        i.nodekey,
-        "-writeaddress",
-      ])
-        .stdout.toString()
-        .trimEnd()}@127.0.0.1:${i.port}?discport=0`
-  );
-  output.forEach((i) => {
-    fs.writeFileSync(
-      `${i.nodo.dir_node}/static-nodes.json`,
-      JSON.stringify(enodes)
-    );
-  });
-  // lanzamos
-  data.forEach((i) => {
-    try {
-      const out2 = fs.openSync(`./${i.nodo.dir_node}/outNodo.log`, "w");
-      const err2 = fs.openSync(`./${i.nodo.dir_node}/outNodo.log`, "a");
-      const subproceso2 = spawn(
-        "geth",
-        i.subproceso.spawnargs.filter((i, index) => index > 0),
-        {
-          detached: true,
-          stdio: ["ignore", out2, err2],
-        }
-      );
-      subproceso2.unref();
-      fs.writeFileSync(
-        `${i.nodo.dir_node}/paramsNodo.json`,
-        JSON.stringify(
-          { date: new Date(), nodo: i.nodo, subproceso: subproceso2 },
-          null,
-          4
-        )
-      );
-    } catch (error) {
-      console.log(error);
-    }
-  });
-
-  res.send({ network: req.params.network });
-});
-
-router.get("/procesos/:network", async (req, res) => {
-  const NUMERO_NETWORK = parseInt(req.params.network);
-  const NETWORK_DIR = `ETH/eth${NUMERO_NETWORK}`;
-  const nodos = fs
-    .readdirSync(NETWORK_DIR, { withFileTypes: true })
-    .filter((i) => !i.isFile());
-  const output = nodos.map((i) =>
-    JSON.parse(fs.readFileSync(`${NETWORK_DIR}/${i.name}/paramsNodo.json`))
-  );
-  res.send(output);
+  res.send({ result: "ok" });
 });
 
 router.get("/", async (req, res) => {
@@ -497,24 +362,87 @@ router.get("/", async (req, res) => {
       const nodes = fs
         .readdirSync(`ETH/${i.name}`, { withFileTypes: true })
         .filter((j) => !j.isFile());
-      var enodekey = "";
-      if (fs.existsSync(`ETH/${i.name}/enodeKey.log`)) {
-        enodekey = fs
-          .readFileSync(`ETH/${i.name}/enodeKey.log`)
-          .toString()
-          .replace(/\r?\n|\r/g, "");
+
+      // loop the nodes
+      for (let index = 0; index < nodes.length; index++) {
+        const node = nodes[index];
+        const parametros = generateParameter(
+          getNumbersInString(i.name),
+          index + 1
+        );
+
+        const { HTTP_PORT } = parametros;
+        node.http_port = HTTP_PORT;
       }
+
       return {
         numero: i.name,
         chainid: genesis.config.chainId,
         cuentas: cuentas,
         nodes: nodes,
-        enodekey: enodekey,
+        bootnode: "",
       };
     })
     .filter((i) => i != null);
+
+  // loop the output and check the bootnode status
+  for (let index = 0; index < output.length; index++) {
+    const network = output[index];
+    network.bootnode = "down";
+
+    var paramsBootnodeFile = `ETH/${network.numero}/paramsBootnode.json`;
+    console.log(paramsBootnodeFile);
+    if (fs.existsSync(paramsBootnodeFile)) {
+      var params = fs.readFileSync(paramsBootnodeFile).toString();
+
+      // Convert to JSON
+      params = JSON.parse(params);
+      network.bootnode = await checkPidStatus(params.subproceso.pid);
+    }
+  }
   res.send(output);
 });
+
+async function checkPidStatus(pid) {
+  await ps.lookup({ pid: pid }, function (err, resultList) {
+    if (err) {
+      throw new Error(err);
+    }
+    var process = resultList[0];
+
+    if (process) {
+      console.log(
+        "PID: %s, COMMAND: %s, ARGUMENTS: %s",
+        process.pid,
+        process.command,
+        process.arguments
+      );
+      return "up";
+    } else {
+      console.log("No such process found!");
+      return "down";
+    }
+  });
+}
+
+async function checkNodeStatus(NUMERO_NETWORK, NUMERO_NODO) {
+  const parametros = generateParameter(NUMERO_NETWORK, NUMERO_NODO);
+  const { HTTP_PORT } = parametros;
+
+  const comando =
+    'geth attach --exec "net.listening" http://localhost:' + HTTP_PORT;
+  const resultado = await exec(comando, (error, stdout, stderr) => {
+    console.log("ejecutado");
+    if (error) {
+      res.send({ error });
+      return;
+    }
+    console.log("RESULTADO");
+
+    console.log({ Salida: stdout });
+    return stdout;
+  });
+}
 
 router.post("/status/:network/:node", (req, res) => {
   const NUMERO_NETWORK = parseInt(req.params.network);
@@ -564,7 +492,6 @@ router.post("/start/:network/:node", async (req, res) => {
   } = parametros;
 
   const address = getAccount(DIR_NODE);
-  const nodeData = getNodeData(DIR_NODE);
 
   if (!fs.existsSync(`${NETWORK_DIR}/enodeKey.log`)) {
     res.send({ result: "bootnode down" });
@@ -574,15 +501,6 @@ router.post("/start/:network/:node", async (req, res) => {
       .readFileSync(`${NETWORK_DIR}/enodeKey.log`)
       .toString()
       .replace(/\r?\n|\r/g, "");
-
-    //const enodekey = fs.readFileSync(`${NETWORK_DIR}/enodeKey.log`).toString();
-
-    console.log("enodekey");
-    console.log(enodekey);
-
-    //res.send({ network: req.params.network, node: req.params.node });
-
-    console.log(`enode://${enodekey}@${IP}?discport=${BOOTNODE_PORT}`);
 
     // Fiile the params array with the command line arguments
     const params = [
@@ -595,20 +513,20 @@ router.post("/start/:network/:node", async (req, res) => {
       "--datadir",
       DIR_NODE,
       "--port",
-      nodeData.port,
+      PORT,
       "--unlock",
       `0x${address}`,
       "--password",
       `./${DIR_NODE}/pwd`,
       "--authrpc.port",
-      nodeData.authRpcPort,
+      AUTHRPC_PORT,
       "--http.api",
       "admin,eth,net,txpool,personal,web3,clique",
       "--allow-insecure-unlock",
       "--http",
       "--graphql",
       "--http.port",
-      nodeData.http_port,
+      HTTP_PORT,
       "--mine",
       "--miner.threads",
       "2",
@@ -639,6 +557,21 @@ router.post("/start/:network/:node", async (req, res) => {
   }
 });
 
+async function stopNode(DIR_NODE) {
+  // const params = fs.readdirSync(`${DIR_NODE}/paramsNodoRunning.json`);
+  if (!fs.existsSync(`${DIR_NODE}/paramsNodoRunning.json`)) {
+    return;
+  }
+
+  var params = fs.readFileSync(`${DIR_NODE}/paramsNodoRunning.json`).toString();
+
+  // Convert to JSON
+  params = JSON.parse(params);
+  console.log("params", params);
+  killPidifExist(params.subproceso.pid);
+  deleteIfExists(`${DIR_NODE}/paramsNodoRunning.json`);
+}
+
 router.post("/stop/:network/:node", async (req, res) => {
   const NUMERO_NETWORK = parseInt(req.params.network);
   const NUMERO_NODO = parseInt(req.params.node);
@@ -646,33 +579,15 @@ router.post("/stop/:network/:node", async (req, res) => {
   const NETWORK_DIR = `ETH/eth${NUMERO_NETWORK}`;
   const DIR_NODE = `${NETWORK_DIR}/nodo${NUMERO_NODO}`;
 
-  console.log("DIR_NODE");
-  console.log(DIR_NODE);
-
-  // const params = fs.readdirSync(`${DIR_NODE}/paramsNodoRunning.json`);
-  var params = fs.readFileSync(`${DIR_NODE}/paramsNodoRunning.json`).toString();
-
-  // Convert to JSON
-  params = JSON.parse(params);
-
-  const result_kill = await ps.kill(params.subproceso.pid, function (err) {
-    if (err) {
-      throw new Error(err);
-    } else {
-      console.log("Process %s has been killed!", params.subproceso.pid);
-    }
-  });
+  stopNode(DIR_NODE);
 
   res.send({ result: "ok" });
 });
 
 function launchBootnode(DIR_NETWORK, BOOTNODE_PORT) {
-  console.log("creating bootnode");
-  execSync(`bootnode -genkey ${DIR_NETWORK}/boot.key`);
-  console.log("Launching bootnode");
-  /* var result = execSync(
-    `bootnode -nodekey ${DIR_NETWORK}/boot.key -addr :${BOOTNODE_PORT}`
-  ); */
+  // if file does not exist, create it, otherwise append:
+  if (!fs.existsSync(`${DIR_NETWORK}/boot.key`))
+    execSync(`bootnode -genkey ${DIR_NETWORK}/boot.key`);
 
   const params = [
     "-nodekey",
@@ -731,28 +646,51 @@ router.post("/startbootnode/:network", async (req, res) => {
   res.send({ result: "done" });
 });
 
-router.post("/stopbootnode/:network", async (req, res) => {
-  const NUMERO_NETWORK = parseInt(req.params.network);
-  const NETWORK_DIR = `ETH/eth${NUMERO_NETWORK}`;
+async function killPidifExist(pid) {
+  await ps.lookup({ pid: pid }, function (err, resultList) {
+    if (err) {
+      throw new Error(err);
+    }
+    var process = resultList[0];
 
-  // const params = fs.readdirSync(`${DIR_NODE}/paramsNodoRunning.json`);
+    if (process) {
+      return killPid(pid);
+    } else {
+      return "no-pid";
+    }
+  });
+}
+
+async function killPid(pid) {
+  const result_kill = await ps.kill(pid, function (err) {
+    if (err) {
+      throw new Error(err);
+    } else {
+      console.log("Process %s has been killed!", pid);
+    }
+  });
+
+  return result_kill;
+}
+
+async function stopbootnode(NUMERO_NETWORK) {
+  const NETWORK_DIR = `ETH/eth${NUMERO_NETWORK}`;
   var params = fs.readFileSync(`${NETWORK_DIR}/paramsBootnode.json`).toString();
 
   // Convert to JSON
   params = JSON.parse(params);
 
-  const result_kill = await ps.kill(params.subproceso.pid, function (err) {
-    if (err) {
-      throw new Error(err);
-    } else {
-      console.log("Process %s has been killed!", params.subproceso.pid);
-      // Delete the files of the enodekey and the boot.key
-      deleteIfExists(`${NETWORK_DIR}/enodeKey.log`);
-      deleteIfExists(`${NETWORK_DIR}/boot.key`);
-      deleteIfExists(`${NETWORK_DIR}/bootnode.log`);
-      deleteIfExists(`${NETWORK_DIR}/paramsBootnode.json`);
-    }
-  });
+  const result_kill = await killPidifExist(params.subproceso.pid);
+  deleteIfExists(`${NETWORK_DIR}/paramsBootnode.json`);
+  deleteIfExists(`${NETWORK_DIR}/enodeKey.log`);
+
+  return result_kill;
+}
+
+router.post("/stopbootnode/:network", async (req, res) => {
+  const NUMERO_NETWORK = parseInt(req.params.network);
+
+  const result_kill = await stopbootnode(NUMERO_NETWORK);
 
   setTimeout(() => {
     res.send({ result: result_kill });
