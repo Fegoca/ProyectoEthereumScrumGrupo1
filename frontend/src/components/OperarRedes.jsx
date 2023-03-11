@@ -17,10 +17,10 @@ export const OperarRedes = (props) => {
     var blockdata = parseInt(data.blocktoread);
     getBlockData(props.network, props.node, blockdata);
   }
-  function onSubmit2(data) {
+  async function onSubmit2(data) {
     //var datatx=parseInt(data.txid);
     //var datahex= ('0000' + datatx.toString(16).toUpperCase()).slice(-4);
-    getTx(props.network, props.node, data.txid);
+    await getTx(props.network, props.node, data.txid);
   }
   async function getLastBlock(net, node) {
     const requestOptions = {
@@ -63,19 +63,11 @@ export const OperarRedes = (props) => {
       console.log("data");
       console.log(data);
 
-      var datafiltrado = data.stdout.replace(/\n/g, "");
-      datafiltrado = datafiltrado.replace(/\\/g, "");
-
-      console.log("data filtrado");
-      console.log(datafiltrado);
-      var objson = JSON.stringify(datafiltrado);
-      //console.log(objson["hash"]);
-
-      objson = JSON.parse(objson);
-      //console.log(objson["hash"]);
-
-      console.log(objson.length);
-      setBlockData(objson);
+      var aux = {
+        hash: data[0].hash,
+        transactions: data[0].transactions,
+      };
+      setBlockData(aux);
       // reload the page
       //window.location.reload();
     } catch (error) {
@@ -86,6 +78,12 @@ export const OperarRedes = (props) => {
 
   //dada una transacción  ver -from -to -amount -hash -fee -timestamp -confirmations -blockhash -blockheight
   async function getTx(net, node, tx) {
+    console.log("net");
+    console.log(net);
+    console.log("node");
+    console.log(node);
+    console.log("tx");
+    console.log(tx);
     const requestOptions = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -143,7 +141,35 @@ export const OperarRedes = (props) => {
         </p>
       </form>
 
-      {blockdata}
+      <div>
+        <div className="card">
+          <div className="card-body">
+            <h5 className="card-title">Block data {blockdata.hash}</h5>
+            <div>
+              <strong>Transactions:</strong> {blockdata.transactions}
+            </div>
+
+            {blockdata.transactions &&
+              blockdata.transactions.map((transaction) => (
+                <div className="mb-4 border">
+                  <div key={transaction}>
+                    <strong>Transaction:</strong> {transaction}
+                  </div>
+                  <div>
+                    <button
+                      onClick={() =>
+                        getTx(props.network, props.node, transaction)
+                      }
+                      className="mb-2 btn btn-primary"
+                    >
+                      Check transaction
+                    </button>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+      </div>
 
       <form onSubmit={handleSubmit(onSubmit2)}>
         <p>
@@ -153,26 +179,30 @@ export const OperarRedes = (props) => {
       </form>
 
       <div>
-        <div className="card">
-          <div className="card-body">
-            <h5 className="card-title">Transaction of block {tx.blockHash}</h5>
-            <div>
-              <strong>From:</strong> {tx.from}
-            </div>
-            <div>
-              <strong>To:</strong> {tx.to}
-            </div>
-            <div>
-              <strong>Value:</strong> {tx.value} ETH
-            </div>
-            <div>
-              <strong>Gas</strong>: {tx.gas} ETH
-            </div>
-            <div>
-              <strong>GasPrice:</strong> {tx.gasPrice} ETH
+        {tx && (
+          <div className="card">
+            <div className="card-body">
+              <h5 className="card-title">
+                Transaction of block {tx.blockHash}
+              </h5>
+              <div>
+                <strong>From:</strong> {tx.from}
+              </div>
+              <div>
+                <strong>To:</strong> {tx.to}
+              </div>
+              <div>
+                <strong>Value:</strong> {tx.value} ETH
+              </div>
+              <div>
+                <strong>Gas</strong>: {tx.gas} ETH
+              </div>
+              <div>
+                <strong>GasPrice:</strong> {tx.gasPrice} ETH
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

@@ -738,17 +738,16 @@ router.post("/block/:network/:node/:block", (req, res) => {
   const NUMERO_BLOCK = parseInt(getNumbersInString(req.params.block));
   const parametros = generateParameter(NUMERO_NETWORK, NUMERO_NODO);
 
-  const {
-    NETWORK_DIR,
-    DIR_NODE,
-    NETWORK_CHAINID,
-    AUTHRPC_PORT,
-    HTTP_PORT,
-    PORT,
-    IPCPATH,
-  } = parametros;
+  const { HTTP_PORT } = parametros;
+  console.log("NUMERO_BLOCK");
+  console.log(NUMERO_BLOCK);
+  // convert to hexadecimal
+  const hexa = NUMERO_BLOCK.toString(16);
 
-  const comando =
+  console.log("hexa");
+  console.log(hexa);
+
+  /* const comando =
     'geth attach --exec "eth.getBlockByNumber(' +
     NUMERO_BLOCK +
     ')" ' +
@@ -769,7 +768,43 @@ router.post("/block/:network/:node/:block", (req, res) => {
     console.log({ Salida: stdout });
 
     res.send({ stdout });
+  }); */
+
+  var myHeaders = new Headers();
+  myHeaders.append("Content-Type", "application/json");
+
+  var raw = JSON.stringify({
+    method: "eth_getBlockByNumber",
+    params: [`0x${hexa}`, false],
+    id: 1,
+    jsonrpc: "2.0",
   });
+
+  var requestOptions = {
+    method: "POST",
+    headers: myHeaders,
+    body: raw,
+    redirect: "follow",
+  };
+  try {
+    fetch(NODE_URL + ":" + HTTP_PORT, requestOptions)
+      .then((response) => response.text())
+      .then((result) => {
+        // Convert to JSON
+        result = JSON.parse(result);
+        console.log("result");
+        console.log(result.result);
+        res.send([
+          {
+            hash: result.result.hash,
+            transactions: result.result.transactions,
+          },
+        ]);
+      })
+      .catch((error) => console.log("error", error));
+  } catch (error) {
+    console.log(error);
+  }
 });
 router.post("/blocktx/:network/:node/:tx", (req, res) => {
   const NUMERO_NETWORK = parseInt(getNumbersInString(req.params.network));
@@ -786,26 +821,6 @@ router.post("/blocktx/:network/:node/:tx", (req, res) => {
     PORT,
     IPCPATH,
   } = parametros;
-
-  /* const comando =
-    'geth attach --exec "eth.getTransactionByHash(' +
-    HASHTX +
-    ')" http://localhost:' +
-    HTTP_PORT;
-  const resultado = exec(comando, (error, stdout, stderr) => {
-    console.log("ejecutado");
-    if (error) {
-      console.log({ error });
-      return;
-    }
-
-    //console.log(resultado);
-    console.log("RESULTADO");
-
-    console.log({ Salida: stdout });
-
-    res.send({ stdout });
-  }); */
 
   var myHeaders = new Headers();
   myHeaders.append("Content-Type", "application/json");

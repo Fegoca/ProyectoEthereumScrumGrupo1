@@ -38,6 +38,8 @@ export function Wallet() {
       });
   };
   function transferETH(data) {
+    console.log("data*****");
+    console.log(data);
     const txparams = {
       from: cuenta,
       to: data.toadress,
@@ -73,7 +75,8 @@ export function Wallet() {
 
             <p>
               Cuenta destino: <input type="text" {...register("toadress")} />
-              Cantidad: <input type="number" min="0" step="any"{...register("value")} />
+              Cantidad:{" "}
+              <input type="number" min="0" step="any" {...register("value")} />
             </p>
 
             <p>
