@@ -12,6 +12,7 @@ const PASSWORD = "123456";
 const BALANCE = "1500000000000000000000000000";
 const MICUENTA = "937fbAD70a9Eeb01d645399031fCA95182308800";
 const IP = "127.0.0.1";
+const NODE_URL = `http://localhost`;
 
 function getNumbersInString(string) {
   var tmp = string.split("");
@@ -400,6 +401,8 @@ router.get("/", async (req, res) => {
       network.bootnode = await checkPidStatus(params.subproceso.pid);
     }
   }
+  console.log("output **************");
+  console.log(output);
   res.send(output);
 });
 
@@ -695,4 +698,154 @@ router.post("/stopbootnode/:network", async (req, res) => {
   setTimeout(() => {
     res.send({ result: result_kill });
   }, 1000);
+});
+router.post("/lastblock/:network/:node", (req, res) => {
+  const NUMERO_NETWORK = parseInt(getNumbersInString(req.params.network));
+  const NUMERO_NODO = parseInt(getNumbersInString(req.params.node));
+
+  const parametros = generateParameter(NUMERO_NETWORK, NUMERO_NODO);
+
+  const {
+    NETWORK_DIR,
+    DIR_NODE,
+    NETWORK_CHAINID,
+    AUTHRPC_PORT,
+    HTTP_PORT,
+    PORT,
+    IPCPATH,
+  } = parametros;
+
+  const comando =
+    'geth attach --exec "eth.blockNumber" ' + NODE_URL + ":" + HTTP_PORT;
+  const resultado = exec(comando, (error, stdout, stderr) => {
+    console.log("ejecutado");
+    if (error) {
+      console.log({ error });
+      return;
+    }
+
+    //console.log(resultado);
+    console.log("RESULTADO");
+
+    console.log({ Salida: stdout });
+    console.log(HTTP_PORT);
+    res.send({ Salida: stdout });
+  });
+});
+router.post("/block/:network/:node/:block", (req, res) => {
+  const NUMERO_NETWORK = parseInt(getNumbersInString(req.params.network));
+  const NUMERO_NODO = parseInt(getNumbersInString(req.params.node));
+  const NUMERO_BLOCK = parseInt(getNumbersInString(req.params.block));
+  const parametros = generateParameter(NUMERO_NETWORK, NUMERO_NODO);
+
+  const {
+    NETWORK_DIR,
+    DIR_NODE,
+    NETWORK_CHAINID,
+    AUTHRPC_PORT,
+    HTTP_PORT,
+    PORT,
+    IPCPATH,
+  } = parametros;
+
+  const comando =
+    'geth attach --exec "eth.getBlockByNumber(' +
+    NUMERO_BLOCK +
+    ')" ' +
+    NODE_URL +
+    ":" +
+    HTTP_PORT;
+
+  const resultado = exec(comando, (error, stdout, stderr) => {
+    console.log("ejecutado");
+    if (error) {
+      console.log({ error });
+      return;
+    }
+
+    //console.log(resultado);
+    console.log("RESULTADO");
+
+    console.log({ Salida: stdout });
+
+    res.send({ stdout });
+  });
+});
+router.post("/blocktx/:network/:node/:tx", (req, res) => {
+  const NUMERO_NETWORK = parseInt(getNumbersInString(req.params.network));
+  const NUMERO_NODO = parseInt(getNumbersInString(req.params.node));
+  const HASHTX = req.params.tx;
+  const parametros = generateParameter(NUMERO_NETWORK, NUMERO_NODO);
+
+  const {
+    NETWORK_DIR,
+    DIR_NODE,
+    NETWORK_CHAINID,
+    AUTHRPC_PORT,
+    HTTP_PORT,
+    PORT,
+    IPCPATH,
+  } = parametros;
+
+  /* const comando =
+    'geth attach --exec "eth.getTransactionByHash(' +
+    HASHTX +
+    ')" http://localhost:' +
+    HTTP_PORT;
+  const resultado = exec(comando, (error, stdout, stderr) => {
+    console.log("ejecutado");
+    if (error) {
+      console.log({ error });
+      return;
+    }
+
+    //console.log(resultado);
+    console.log("RESULTADO");
+
+    console.log({ Salida: stdout });
+
+    res.send({ stdout });
+  }); */
+
+  var myHeaders = new Headers();
+  myHeaders.append("Content-Type", "application/json");
+
+  var raw = JSON.stringify({
+    method: "eth_getTransactionByHash",
+    params: [HASHTX],
+    id: 1,
+    jsonrpc: "2.0",
+  });
+
+  var requestOptions = {
+    method: "POST",
+    headers: myHeaders,
+    body: raw,
+    redirect: "follow",
+  };
+  try {
+    fetch(NODE_URL + ":" + HTTP_PORT, requestOptions)
+      .then((response) => response.text())
+      .then((result) => {
+        // Convert to JSON
+        result = JSON.parse(result);
+        console.log("result");
+        console.log(result.result);
+        console.log("from");
+        console.log(result.result.from);
+        res.send([
+          {
+            blockHash: result.result.blockHash,
+            from: result.result.from,
+            to: result.result.to,
+            value: result.result.value,
+            gas: result.result.gas,
+            gasPrice: result.result.gasPrice,
+          },
+        ]);
+      })
+      .catch((error) => console.log("error", error));
+  } catch (error) {
+    console.log(error);
+  }
 });
