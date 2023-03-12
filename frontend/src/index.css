@@ -5,6 +5,11 @@
 
 .card-custom-max-with {
   max-width: 350px;
+  display: inline-block;
+}
+
+.node_wrap{
+  position: relative;
 }
 
 .crypto_modal_box{
@@ -17,6 +22,6 @@
 
 .crypto_modal_loader{
   position: relative;
-  top: 45%;
+  top: 35%;
 }
 

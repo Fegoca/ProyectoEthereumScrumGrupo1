@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import web3 from "web3";
+import loader from "../assets/loader.gif";
 
 export const OperarRedes = (props) => {
   const url = "http://localhost:3000";
@@ -9,6 +10,9 @@ export const OperarRedes = (props) => {
   const [lastblock, setLastBlock] = useState();
   const [blockdata, setBlockData] = useState([]);
   const [tx, setTx] = useState(null);
+  const [modalBoxFlag, setModalBoxFlag] = useState(false);
+  const [loaderFlag, setLoaderFlag] = useState(false);
+  const [faucetMessage, setFaucetMessage] = useState(null);
 
   useEffect(() => {
     getLastBlock(props.network, props.node);
@@ -18,7 +22,18 @@ export const OperarRedes = (props) => {
     getBlockData(props.network, props.node, blockdata);
   }
 
+  function showLoader() {
+    setModalBoxFlag(true);
+    setLoaderFlag(true);
+  }
+
+  function hideLoader() {
+    setModalBoxFlag(false);
+    setLoaderFlag(false);
+  }
+
   async function faucet(data) {
+    showLoader();
     console.log(data.address);
 
     const requestOptions = {
@@ -41,20 +56,27 @@ export const OperarRedes = (props) => {
       const datos = await response.json();
       console.log("datos");
       console.log(datos);
+      hideLoader();
+      setFaucetMessage("The faucet has been sent to your address");
+      getLastBlock(props.network, props.node);
+      getBlockData(props.network, props.node, lastblock);
       // reload the page
       //window.location.reload();
     } catch (error) {
       console.log("error");
       console.log(error);
+      hideLoader();
     }
   }
 
   async function onSubmit2(data) {
+    showLoader();
     //var datatx=parseInt(data.txid);
     //var datahex= ('0000' + datatx.toString(16).toUpperCase()).slice(-4);
     await getTx(props.network, props.node, data.txid);
   }
   async function getLastBlock(net, node) {
+    showLoader();
     const requestOptions = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -68,11 +90,13 @@ export const OperarRedes = (props) => {
       );
       const datos = await response.json();
       bloque.push(datos.Salida);
+      hideLoader();
       // reload the page
       //window.location.reload();
     } catch (error) {
       console.log("error");
       console.log(error);
+      hideLoader();
     }
 
     setLastBlock(bloque);
@@ -80,6 +104,7 @@ export const OperarRedes = (props) => {
 
   //elegir bloque de la red {props.network} listar transacciones del bloque con hash y fecha
   async function getBlockData(net, node, block) {
+    showLoader();
     const requestOptions = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -100,16 +125,19 @@ export const OperarRedes = (props) => {
         transactions: data[0].transactions,
       };
       setBlockData(aux);
+      hideLoader();
       // reload the page
       //window.location.reload();
     } catch (error) {
       console.log("error");
       console.log(error);
+      hideLoader();
     }
   }
 
   //dada una transacción  ver -from -to -amount -hash -fee -timestamp -confirmations -blockhash -blockheight
   async function getTx(net, node, param_tx) {
+    showLoader();
     console.log("net");
     console.log(net);
     console.log("node");
@@ -141,45 +169,54 @@ export const OperarRedes = (props) => {
         gasPrice: web3.utils.fromWei(data[0].gasPrice, "ether"),
       };
       setTx(aux);
+      hideLoader();
     } catch (error) {
       console.log("error");
       console.log(error);
+      hideLoader();
     }
   }
 
-  /*{blockdata&&blockdata.map((propiedad)=>{
-         <li key={propiedad}>
-          {blockdata.hash}</li>
-       })}
-       {blockdata.transaction.map((tx)=>{
-        <p key={tx}>{transaccion}</p>
-       })}
-       <li>{blockdata.slice(154,230)}</li> 
-       <li>{blockdata.slice(1357,1373)}</li>*/
-  //var blockdatis=JSON.parse(blockdata)
-  //setBlockData(blockdatis)
   return (
-    <div>
+    <div className="node_wrap">
       <h5>Operar redes {props.network} </h5>
-      <div className="card mb-4">
-        <p>
-          <strong>FAUCET</strong>
-        </p>
-        <form onSubmit={handleSubmit(faucet)}>
-          <div className="mb-2">
-            Address: <input type="text" min="0" {...register("address")} />
-          </div>
 
-          <div className="mb-4">
-            <input
-              className="mb-2 btn btn-primary"
-              type="submit"
-              value="Send 100 ETH"
-            />
-          </div>
-        </form>
-      </div>
+      {modalBoxFlag && (
+        <div id="modal_box" className="crypto_modal_box">
+          {loaderFlag && (
+            <img src={loader} alt="loader" className="crypto_modal_loader" />
+          )}
+        </div>
+      )}
 
+      {"nodo1" === props.node && (
+        <div className="card mb-4 ">
+          <p>
+            <strong>FAUCET</strong>
+          </p>
+          <form onSubmit={handleSubmit(faucet)}>
+            <div className="mb-2">
+              Address: <input type="text" min="0" {...register("address")} />
+            </div>
+
+            <div className="mb-4">
+              <input
+                className="mb-2 btn btn-primary"
+                type="submit"
+                value="Send 100 ETH"
+              />
+            </div>
+          </form>
+          {faucetMessage && faucetMessage.length > 0 && (
+            <div
+              id="warning_message"
+              className="p-3 mb-2 bg-success text-white"
+            >
+              {faucetMessage}
+            </div>
+          )}
+        </div>
+      )}
       <p>
         Bloques: {parseInt(lastblock) + 1} Último bloque: {lastblock}
       </p>

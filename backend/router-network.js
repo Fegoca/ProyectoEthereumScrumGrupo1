@@ -102,6 +102,7 @@ async function generateGenesis(
     acc[`0x${item}`] = { balance: BALANCE };
     return acc;
   }, {});
+
   console.log("CUENTAS_ALLOC");
   console.log(CUENTAS_ALLOC);
   console.log("genesis");
@@ -879,14 +880,14 @@ router.post("/faucet/:network/:node/:address", async (req, res) => {
   console.log(ADDRESS);
 
   const parametros = generateParameter(NUMERO_NETWORK, NUMERO_NODO);
-  const { DIR_NODE, HTTP_PORT } = parametros;
+  const { DIR_NODE, HTTP_PORT, NETWORK_CHAINID } = parametros;
   console.log(`${NODE_URL}:${HTTP_PORT}`);
   const web3 = new Web3(`${NODE_URL}:${HTTP_PORT}`);
   const account = getAccountFromKeystore(DIR_NODE, web3);
 
   // create tx transaction
   const tx = {
-    chainId: 8888,
+    chainId: NETWORK_CHAINID,
     from: account.address,
     to: ADDRESS,
     value: web3.utils.toWei("100", "ether"),
@@ -899,12 +900,28 @@ router.post("/faucet/:network/:node/:address", async (req, res) => {
   const signedTx = await account.signTransaction(tx);
   console.log("signedTx", signedTx);
 
-  // send transaction
+  try {
+    // send transaction
+    const receipt = await web3.eth.sendSignedTransaction(
+      signedTx.rawTransaction
+    );
+    console.log("receipt", receipt);
+    // Send stringify receipt
+    //res.send("Receipt: " + JSON.stringify(receipt));
+    //res.send(receipt);
+    // response with receipt as a json
+    res.json(receipt);
+  } catch (error) {
+    console.log("error********************");
+    console.log(error);
+    res.json(error);
+  }
+  /* // send transaction
   const receipt = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
   console.log("receipt", receipt);
   // Send stringify receipt
   //res.send("Receipt: " + JSON.stringify(receipt));
   //res.send(receipt);
   // response with receipt as a json
-  res.json(receipt);
+  res.json(receipt); */
 });
