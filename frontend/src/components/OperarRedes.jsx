@@ -167,7 +167,7 @@ export const OperarRedes = (props) => {
         </p>
         <form onSubmit={handleSubmit(faucet)}>
           <div className="mb-2">
-            Address: <input type="number" min="0" {...register("address")} />
+            Address: <input type="text" min="0" {...register("address")} />
           </div>
 
           <div className="mb-4">

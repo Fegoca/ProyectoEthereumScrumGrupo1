@@ -304,7 +304,7 @@ router.post("/add/:network/:node", async (req, res) => {
   }, 1000);
 });
 
-router.delete("/net/:network", (req, res) => {
+router.delete("/net/:network", async (req, res) => {
   const NETWORK = req.params.network;
   const NETWORK_DIR = `ETH/eth${NETWORK}`;
 
@@ -313,26 +313,13 @@ router.delete("/net/:network", (req, res) => {
   const nodos = fs
     .readdirSync(NETWORK_DIR, { withFileTypes: true })
     .filter((i) => !i.isFile());
-  const pids = nodos.map((i) => {
-    try {
-      return JSON.parse(
-        fs.readFileSync(`${NETWORK_DIR}/${i.name}/paramsNodoRunning.json`)
-      ).subproceso.pid;
-    } catch (error) {
-      console.log(error);
-      return null;
-    }
+  nodos.map((i) => {
+    var DIR_NODE = `${NETWORK_DIR}/${i.name}`;
+    stopNode(DIR_NODE);
+    deleteIfExists(DIR_NODE);
   });
 
-  pids
-    .filter((i) => i != null)
-    .forEach((i) => {
-      try {
-        process.kill(i);
-      } catch (error) {
-        console.log(error);
-      }
-    });
+  const result_kill = await stopbootnode(NETWORK);
 
   deleteIfExists(NETWORK_DIR);
   res.send({ result: "ok" });
@@ -705,8 +692,10 @@ async function killPid(pid) {
 
 async function stopbootnode(NUMERO_NETWORK) {
   const NETWORK_DIR = `ETH/eth${NUMERO_NETWORK}`;
-  var params = fs.readFileSync(`${NETWORK_DIR}/paramsBootnode.json`).toString();
+  // check if exists file paramsBootnode.json
+  if (!fs.existsSync(`${NETWORK_DIR}/paramsBootnode.json`)) return;
 
+  var params = fs.readFileSync(`${NETWORK_DIR}/paramsBootnode.json`).toString();
   // Convert to JSON
   params = JSON.parse(params);
 
@@ -854,7 +843,7 @@ router.post("/blocktx/:network/:node/:tx", (req, res) => {
   }
 });
 
-function getAccountFromKeystore(DIR_NODE) {
+function getAccountFromKeystore(DIR_NODE, web3Param) {
   // loop the files inside DIR_NODE
   const keystore_path = DIR_NODE + "/keystore";
   console.log("DIR_NODE");
@@ -873,29 +862,49 @@ function getAccountFromKeystore(DIR_NODE) {
   const json = JSON.parse(
     fs.readFileSync(`${DIR_NODE}/keystore/${accountFile}`)
   );
-  const web3 = new Web3("http://localhost:9566");
+
   console.log(`${DIR_NODE}/pwd`);
   const password = fs.readFileSync(`${DIR_NODE}/pwd`).toString();
-  const account = web3.eth.accounts.decrypt(json, password);
+  const account = web3Param.eth.accounts.decrypt(json, password);
   console.log("account");
   console.log(account);
   return account;
 }
 
-router.post("/faucet/:network/:node/:address", (req, res) => {
+router.post("/faucet/:network/:node/:address", async (req, res) => {
   const NUMERO_NETWORK = parseInt(getNumbersInString(req.params.network));
   const NUMERO_NODO = parseInt(getNumbersInString(req.params.node));
   const ADDRESS = req.params.address;
-  const parametros = generateParameter(NUMERO_NETWORK, NUMERO_NODO);
-  const {
-    NETWORK_DIR,
-    DIR_NODE,
-    NETWORK_CHAINID,
-    AUTHRPC_PORT,
-    HTTP_PORT,
-    PORT,
-    IPCPATH,
-  } = parametros;
+  console.log("ADDRESS");
+  console.log(ADDRESS);
 
-  const account = getAccountFromKeystore(DIR_NODE);
+  const parametros = generateParameter(NUMERO_NETWORK, NUMERO_NODO);
+  const { DIR_NODE, HTTP_PORT } = parametros;
+  console.log(`${NODE_URL}:${HTTP_PORT}`);
+  const web3 = new Web3(`${NODE_URL}:${HTTP_PORT}`);
+  const account = getAccountFromKeystore(DIR_NODE, web3);
+
+  // create tx transaction
+  const tx = {
+    chainId: 8888,
+    from: account.address,
+    to: ADDRESS,
+    value: web3.utils.toWei("100", "ether"),
+    gas: 21000,
+    //gasPrice: web3.utils.toWei("1", "gwei"),
+  };
+  console.log("tx", tx);
+
+  // sign transaction
+  const signedTx = await account.signTransaction(tx);
+  console.log("signedTx", signedTx);
+
+  // send transaction
+  const receipt = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
+  console.log("receipt", receipt);
+  // Send stringify receipt
+  //res.send("Receipt: " + JSON.stringify(receipt));
+  //res.send(receipt);
+  // response with receipt as a json
+  res.json(receipt);
 });
