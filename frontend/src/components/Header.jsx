@@ -13,7 +13,6 @@ export const Header = () => {
       <img src={logo} alt="Logo" className="logo-img" />
       <div className="header-text-container">
         <h1>Build Private Ethereum Networks</h1>
-        <Link to="/networkList">Lista de redes</Link>
       </div>
     </div>
   );

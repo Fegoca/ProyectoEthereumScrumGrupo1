@@ -1,5 +1,9 @@
-export const HomeBody = () =>{
-    return <div>
-        Bienvenido al gestor integrado de redes privadas Ethereum
+import { NetworkList } from "./NetworkList";
+
+export const HomeBody = () => {
+  return (
+    <div>
+      <NetworkList />
     </div>
-}
+  );
+};
